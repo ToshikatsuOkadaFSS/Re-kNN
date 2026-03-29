@@ -1,0 +1,33 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Documents/">
+    <File Path="docs/onnx-preparation.ja.md" />
+    <File Path="docs/onnx-preparation.md" />
+    <File Path="EULA-RekNN-Evaluation.ja.md" />
+    <File Path="EULA-RekNN-Evaluation.md" />
+    <File Path="LICENSE" />
+    <File Path="README.ja.md" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="DocuSleuthBertLibrary/DocuSleuthBertLibrary.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="FuutaSystemSvcCommonLibrary/FuutaSystemSvcCommonLibrary.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="Re-kNN-BERT/RekNNBERT.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="RekNNCIFAR10/RekNNCIFAR10.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="RekNNMNIST/RekNNMNIST.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+  <Project Path="RekNNUtility/RekNNUtility.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
+</Solution>

@@ -1,0 +1,62 @@
+{
+  "TrainFilePaths": [
+    "C:\\Users\\tokad\\Documents\\FuutaSystemService\\CIFAR10\\data_batch_1.bin",
+    "C:\\Users\\tokad\\Documents\\FuutaSystemService\\CIFAR10\\data_batch_2.bin",
+    "C:\\Users\\tokad\\Documents\\FuutaSystemService\\CIFAR10\\data_batch_3.bin",
+    "C:\\Users\\tokad\\Documents\\FuutaSystemService\\CIFAR10\\data_batch_4.bin",
+    "C:\\Users\\tokad\\Documents\\FuutaSystemService\\CIFAR10\\data_batch_5.bin"
+  ],
+  "TestFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\CIFAR10\\test_batch.bin",
+  "DatabasePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\RekNNCIFAR10",
+  "SimilarityThreshold": 0.9,
+  "SearchMaxNumForAddVector": 5,
+  "MaxThread": 20,
+  "KValues": [
+    1,
+    3,
+    5,
+    10,
+    15,
+    20
+  ],
+  "DetectThresholds": [
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+  ],
+  "AllLabels": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "DropLabels": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    99
+  ],
+  "AddVectorThresholds": [
+    0.9,
+    0.95,
+    0.98
+  ],
+  "RefineThresholds": [
+    null
+  ]
+}

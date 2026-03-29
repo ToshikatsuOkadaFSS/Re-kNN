@@ -1,0 +1,14 @@
+{
+  "OnnxPath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\onnx-bert-base-multilingual-cased\\model.onnx",
+  "VocabPath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\onnx-bert-base-multilingual-cased\\vocab.txt",
+  "MaxTokenSize": 512,
+  "TextFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\WikipediaText4Test",
+  "DatabasePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\VectorSearchSampleDatabase",
+  "TextFile2IdValues": {
+    "ids": [],
+    "Names": []
+  },
+  "SimilarityThreshold": 0.9,
+  "SearchMaxNumForAddVector": 5,
+  "MaxThread": 20
+}
