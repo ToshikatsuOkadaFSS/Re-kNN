@@ -6,13 +6,14 @@ The Re-kNN library is provided in the form of a DLL. This document describes how
 
 This library is provided as a DLL built for win-x64.
 
-**Warning**: This library is intended to be thread-safe, but it has not yet been tested sufficiently. If it is used concurrently from multiple threads, there is a high possibility that defects may occur.
+**Warning**: Concurrent use is not recommended at this stage.
 
 ## 2. Basic Structure
 
 Re-kNN is designed on the assumption that multiple independent indexes will be deployed in memory. Therefore, it is necessary to specify the number of instances to be used by the system at initialization time.
 
-The search result is designed to return the IDs of the document or other entity to which the vector belongs. Therefore, when registering a vector, it is necessary to specify IDs (Main and Sub).
+Search results return the IDs of the documents or entities associated with the vectors.
+Therefore, when registering a vector, it is necessary to specify IDs (Main and Sub).
 Sub is assumed to be subordinate to Main.
 For MNIST and similar datasets, the label number is registered as Main and the data number as Sub.
 For BERT and similar datasets, the document number is registered as Main and the sentence number within the document as Sub.
@@ -263,12 +264,12 @@ Optimizes the index structure of the specified vector information in the specifi
 | Argument Type | Argument Name | Meaning                                                                              |
 | :------------ | :------------ | :----------------------------------------------------------------------------------- |
 | int           | instanceNo    | Instance number                                                                      |
-| float*        | vec           | Vectors to register (length vectors, each with the size specified at initialization) |
+| float*        | vec           | Vectors to refine (length vectors, each with the size specified at initialization) |
 | int           | length        | Number of vectors to register                                                        |
 | int           | mainId        | Main ID of the vectors to register                                                   |
 | int           | subId         | Sub ID of the vectors to register                                                    |
 | int           | searchMax     | Search width used when finding the registration destination (5 recommended)          |
-| int           | threshold     | Index match threshold                                                                |
+| double        | threshold     | Index match threshold                                                                |
 
 | Return Value | Meaning                                                                             |
 | :----------- | :---------------------------------------------------------------------------------- |
@@ -311,7 +312,7 @@ The amount of data returned may differ from the kValue specified in the argument
 | Argument Type | Argument Name | Meaning                                                                              |
 | :------------ | :------------ | :----------------------------------------------------------------------------------- |
 | int           | instanceNo    | Instance number                                                                      |
-| float*        | vec           | Vectors to register (length vectors, each with the size specified at initialization) |
+| float*        | vec           | Vectors to search (length vectors, each with the size specified at initialization) |
 | int           | length        | Number of vectors to register                                                        |
 | int           | kValue        | Search range                                                                         |
 
@@ -329,7 +330,7 @@ try
 {
     // your codes here
 
-    result = Search(0, vector, len, k)
+    result = Search(0, vector, len, k);
 
     // your codes here
 }
@@ -437,7 +438,7 @@ try
 {
     // your codes here
 
-    result = SimpleClustering(0)
+    result = SimpleClustering(0);
 
     // your codes here
 }
@@ -465,7 +466,7 @@ This inference engine also returns the evidence for the inference, making it pos
 | Argument Type | Argument Name   | Meaning                                                                                                                                                                                                           |
 | :------------ | :-------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | int           | instanceNo      | Instance number                                                                                                                                                                                                   |
-| float*        | vec             | Vectors to register (length vectors, each with the size specified at initialization)                                                                                                                              |
+| float*        | vec             | Vectors to predict (length vectors, each with the size specified at initialization)                                                                                                                              |
 | int           | length          | Number of vectors to register                                                                                                                                                                                     |
 | int           | kValue          | Number of similar data items used for voting                                                                                                                                                                      |
 | double        | detectThreshold | Threshold for accepting the voting result. The item whose evaluation value is the highest and exceeds the threshold is used as the inference result. If no item exceeds the threshold, it is judged as "Unknown". |
@@ -484,7 +485,7 @@ try
 {
     // your codes here
 
-    result = Predict(0, vector, len, k, th)
+    result = Predict(0, vector, len, k, th);
 
     // your codes here
 }
@@ -511,7 +512,7 @@ Queries whether the specified vector is subject to optimization in the specified
 | Argument Type | Argument Name | Meaning                                                                              |
 | :------------ | :------------ | :----------------------------------------------------------------------------------- |
 | int           | instanceNo    | Instance number                                                                      |
-| float*        | vec           | Vectors to register (length vectors, each with the size specified at initialization) |
+| float*        | vec           | Vectors to check (length vectors, each with the size specified at initialization) |
 | int           | length        | Number of vectors to register                                                        |
 | int           | searchMax     | Search width used when finding the registration destination (5 recommended)          |
 | int           | mainId        | Main ID of the vectors to register                                                   |

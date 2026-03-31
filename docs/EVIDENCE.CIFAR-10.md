@@ -18,6 +18,10 @@ Unless otherwise noted, the results in this report were obtained under the follo
 
 For CIFAR-10, Refine is not applied because of the characteristics of the dataset.
 
+### Note
+
+This evaluation reflects results obtained by treating images directly as vectors. No image-specific processing, such as feature extraction, has been applied.
+
 ## 1. Re-kNN Performance
 
 | Unknown-Detection Threshold (decision threshold) | Accuracy (Total Acc) | Unknown Rate | Misclassification Rate | Accuracy excluding Unknown | Correct | Unknown | Misclassified | Notes |

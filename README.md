@@ -6,71 +6,50 @@
 
 Re-kNN is an evaluation-oriented vector search and inference library that rethinks kNN within a modern vector search engine architecture, with a focus on deterministic geometry, dynamic updates, and explicit unknown detection.
 
+Unlike conventional approaches, it provides explicit and reproducible evidence for each result,
+making it suitable for evaluation in decision-making and audit-sensitive environments.
+
+* Current evaluation and reported benchmarks assume single-threaded execution. Concurrent use is not yet recommended in production-like scenarios.
+
 ## Quick Links
 
 - **Evaluation License for Core DLL**: [`EULA-RekNN-Evaluation.md`](./EULA-RekNN-Evaluation.md)
 - **Japanese Reference Translation of EULA**: [`EULA-RekNN-Evaluation.ja.md`](./EULA-RekNN-Evaluation.ja.md)
 - **License for Sample Applications / Source Code**: [`LICENSE`](./LICENSE)
 
-## Repository Structure
+## Concepts
 
-This repository intentionally separates the licensing and distribution model by component:
+Re-kNN is not just a fast vector search engine.
 
-- **Core DLL**: distributed as a binary-only evaluation package under a proprietary evaluation license
-- **Sample applications and related source code**: provided separately under Apache License 2.0
-- **Documentation**: unless otherwise noted, follows the same licensing policy as the sample applications
+For details, please refer to:
+[`CONCEPTS.md`](./docs/CONCEPTS.md)
 
-Please review the applicable license before using each component.
+## Use Cases
 
-## Manifesto
+Re-kNN is designed for scenarios where explainability, reproducibility, and unknown-detection capability are important.
 
-* **ReBuild**: Reconstructing the fundamental architecture of vector search engines from the ground up.
-* **ReNewal**: Combining kNN with modern vector search engines to renew the algorithm for today's large-scale requirements.
-* **ReCall**: Reducing unnecessary uncertainty in search and inference through deterministic search behavior and explicit unknown handling.
-* **ReFine**: Continuous optimization of high-dimensional geometry through post-build refinement. Re-kNN can re-evaluate and correct elements placed in structurally inappropriate positions within the search tree after database construction.
+Representative use cases include:
 
-## Core Philosophy
+- **Inspection Process Improvement**  
+  Small-start inspection systems that improve over time through incremental data registration.
+- **Edge Inference**  
+  Real-time inference on standalone devices with limited CPU and memory resources.
+- **Anomaly Detection**  
+  Detection of unknown states by registering only known or normal data.
+- **Knowledge Search**  
+  Search systems that require explicit evidence, sentence-level scoring, and reproducible outputs.
 
-### Deterministic Geometry
+For detailed use cases and application ideas, please refer to:
+[`USECASES.md`](./docs/USECASES.md)
 
-Re-kNN performs search based on **Deterministic Geometry**, without relying on random numbers or random seeds.
-Under identical input conditions, the system always yields identical results.
 
-### Density-Based Partitioning
+## Technical Features
 
-Spatial partitioning is performed based on the **natural density** of the data.
-
-### No Data Truncation
-
-**Clustering instead of quantization.**
-Unlike traditional methods that truncate vector precision to save memory, Re-kNN employs high-fidelity clustering based on density. 
-We preserve the original integrity of your data while organizing it with a structurally efficient approach.
-
-### Sequential Order Acceptance
-
-Re-kNN accepts that the tree structure may vary depending on the order of data insertion.
-We embrace the "flow of time" as a structural reality.
-Insertion order affects the resulting structure, but the system remains deterministic under a fixed insertion order.
-
-### No Sort
-
-Re-kNN does not rely on 1D sorting as the primary organizing principle for high-dimensional data.
-
-### Honest Predict
-
-Re-kNN provides supporting information for each inference, such as matched neighbors, distances, and unknown / warning states.
-
-### Honest Unknown
-
-Explicitly notifies when the target data is unknown. We prioritize "intellectual honesty" over forcing a guess.
-
-### Dynamic Knowledge Maintenance
-
-Knowledge is not static. Re-kNN allows for real-time modifications—addition, deletion, and optimization—ensuring the database evolves alongside the information it stores.
-
-### Post-Build Self-Correction
-
-After database construction, Re-kNN can re-evaluate elements that were placed in structurally inappropriate positions in the search tree and correct them through refinement.
+- Deterministic vector search
+- Explicit nearest neighbor reasoning
+- Large-scale support (evaluated in selected scenarios; results vary by domain and dataset density)
+- Unknown detection capability
+- Stable and reproducible outputs
 
 ### Supported Standard Dimensions
  
@@ -83,11 +62,31 @@ For CIFAR-10 evaluation, Re-kNN uses the original image pixel values directly as
 
 These dimensions are provided as reference evaluation targets. For other dimensional requirements, Re-kNN's core geometry can be applied through custom implementation.
 
-### Distribution
+## Repository Structure
+
+This repository intentionally separates the licensing and distribution model by component:
+
+- **Core DLL**: distributed as a binary-only evaluation package under a proprietary evaluation license
+- **Sample applications and related source code**: provided separately under Apache License 2.0
+- **Documentation**: unless otherwise noted, follows the same licensing policy as the sample applications
+
+Please review the applicable license before using each component.
+
+## Distribution
 
 * **Format**: Provided as a DLL for .NET 8.
 * **Verified Environment**: Windows 11 Professional
 * **Customization**: For other dimensions, dataset formats, or specific architectural needs, please contact the author.
+
+## Manifesto
+
+* **ReBuild**: Reconstructing the fundamental architecture of vector search engines from the ground up.
+* **ReNewal**: Combining kNN with modern vector search engines to renew the algorithm for today's large-scale requirements.
+* **ReCall**: Reducing unnecessary uncertainty in search and inference through deterministic search behavior and explicit unknown handling.
+* **ReFine**: Continuous optimization of high-dimensional geometry through post-build refinement. Re-kNN can re-evaluate and correct elements placed in structurally inappropriate positions within the search tree after database construction.
+
+For details, please refer to:
+[`ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
 
 ## Positioning
 
@@ -152,7 +151,7 @@ If you are interested, please contact us at:
 ### Important Notes
 
 This library is designed to help users evaluate the underlying technology responsibly and transparently.
-This library is published not as a claim of universal superiority over existing systems, but as an opportunity for independent verification and technical assessment.
+It is published not as a claim of universal superiority over existing systems, but as an opportunity for independent verification and technical assessment.
 
 We welcome constructive feedback from users who evaluate the library in real conditions.
 
@@ -201,11 +200,11 @@ The following evaluations are currently available:
 
 For details, please refer to the following documents:
 
-- [Evidence Overview](./EVIDENCE.md)
-- [Evidence for MNIST](./EVIDENCE.MNIST.md)
-- [Evidence for CIFAR-10](./EVIDENCE.CIFAR-10.md)
-- [Evidence for BERT](./EVIDENCE.BERT.md)
-- [Evidence for MNIST Clustering](./EVIDENCE.MNIST.Clustering.md)
+- [Evidence Overview](./docs/EVIDENCE.md)
+- [Evidence for MNIST](./docs/EVIDENCE.MNIST.md)
+- [Evidence for CIFAR-10](./docs/EVIDENCE.CIFAR-10.md)
+- [Evidence for BERT](./docs/EVIDENCE.BERT.md)
+- [Evidence for MNIST Clustering](./docs/EVIDENCE.MNIST.Clustering.md)
 
 Evaluation results will be updated incrementally over time.
 
@@ -232,4 +231,4 @@ Refine(0, vec, length, mainId, subId, 5, 0.9);
 
 For API details, please refer to the following file:
 
-[API](./API.md)
+[API.md](./docs/API.md)

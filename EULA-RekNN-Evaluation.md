@@ -53,7 +53,6 @@ This License applies only to the binary Software identified above.
 
 The Software is licensed, not sold.  
 All rights, title, and interest in and to the Software, including all intellectual property rights, remain with Licensor.
-Any feedback, insights, or discoveries made by Licensee regarding the Software's methodology shall automatically vest in Licensor.
 
 ## 6. Support and Customization
 

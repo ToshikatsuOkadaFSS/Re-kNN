@@ -1,12 +1,12 @@
 # Re-kNN API Specification
 
-Re-kNN のライブラリは、DLL の形で提供してる。ここでは、そのライブラリの呼び出し方法について記述する。
+Re-kNN のライブラリは、DLL の形で提供している。ここでは、そのライブラリの呼び出し方法について記述する。
 
 ## 1. 条件
 
 本ライブラリは、win-x64 用にビルドした DLL として提供している。
 
-**注意**: スレッドセーフなライブラリとして作成しているが、まだ十分なテストが出来ていない。複数スレッドからの同時利用を行う場合、不具合の発生する可能性が高いことに留意すること。
+**注意**: 複数スレッドからの呼び出しは推奨しません。
 
 ## 2. 基本的な構成
 
@@ -19,8 +19,8 @@ BERT 等では、Main に文書番号、Sub に文書内のセンテンス番号
 
 ## 3. DLL I/F 定義
 
-DLL を呼び出すため、呼び出し側に、以下の定義を挿入する必要がある。このサンプルは、C# にて記述してある。
-また、これを記述したコードは、リポジトリ内にある RekNNUtility.cs となる。必用に応じて参照すること。
+DLL を呼び出すため、呼び出し側に以下の定義を追加する必要がある。このサンプルは、C# にて記述してある。
+また、これを記述したコードは、リポジトリ内にある RekNNUtility.cs となる。必要に応じて参照すること。
 
 struct の定義
 
@@ -128,7 +128,7 @@ struct の定義
     }
 ```
 
-DLL呼び出しの定義
+DLL 呼び出しの定義
 ```C#
         [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
         private static extern bool Initialize(ModeEnum mode, int instanceNum);
@@ -267,12 +267,12 @@ DLL呼び出しの定義
 | 引数の型 | 引数名 | 意味 |
 | :--- | :--- | :--- |
 | int | instanceNo | インスタンス番号 |
-| float* | vec | 登録するベクトル(length個の初期化時に指定したサイズのベクトル) |
+| float* | vec | 最適化するベクトル(length個の初期化時に指定したサイズのベクトル) |
 | int | length | 登録するベクトルの数 |
 | int | mainId | 登録するベクトルのメインID |
 | int | subId | 登録するベクトルのサブID |
 | int | searchMax | 登録先を検索する際の探索幅(5を推奨) |
-| int | threshold | インデックスの一致判定閾値 |
+| double | threshold | インデックスの一致判定閾値 |
 
 | 戻り値 | 意味 |
 | :--- | :--- |
@@ -315,7 +315,7 @@ DLL呼び出しの定義
 | 引数の型 | 引数名 | 意味 |
 | :--- | :--- | :--- |
 | int | instanceNo | インスタンス番号 |
-| float* | vec | 登録するベクトル(length個の初期化時に指定したサイズのベクトル) |
+| float* | vec | 検索するベクトル(length個の初期化時に指定したサイズのベクトル) |
 | int | length | 登録するベクトルの数 |
 | int | kValue | 探索範囲 |
 
@@ -333,7 +333,7 @@ try
 {
     // your codes here
 
-    result = Search(0, vector, len, k)
+    result = Search(0, vector, len, k);
 
     // your codes here
 }
@@ -441,7 +441,7 @@ try
 {
     // your codes here
 
-    result = SimpleClustering(0)
+    result = SimpleClustering(0);
 
     // your codes here
 }
@@ -469,7 +469,7 @@ finally
 | 引数の型 | 引数名 | 意味 |
 | :--- | :--- | :--- |
 | int | instanceNo | インスタンス番号 |
-| float* | vec | 登録するベクトル(length個の初期化時に指定したサイズのベクトル) |
+| float* | vec | 推論するベクトル(length個の初期化時に指定したサイズのベクトル) |
 | int | length | 登録するベクトルの数 |
 | int | kValue | 投票対象とする類似データの数 |
 | double | detectThreshold | 投票結果を採用するための閾値。閾値を超え、最大の評価値を持つものを推論結果とする。閾値を超えるデータが無い場合は「未知」と判断する。 |
@@ -488,7 +488,7 @@ try
 {
     // your codes here
 
-    result = Predict(0, vector, len, k, th)
+    result = Predict(0, vector, len, k, th);
 
     // your codes here
 }

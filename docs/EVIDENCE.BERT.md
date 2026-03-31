@@ -4,7 +4,7 @@
 
 This report evaluates BERT-tokenized articles extracted from Wikipedia JP.
 In this evaluation, all tokens are registered. Therefore, when indexing 10,000 Wikipedia articles, the total number of vectors handled reaches approximately 11.6 million.
-This evaluation targets raw vector information without chunking or similar preprocessing.
+This evaluation targets raw vector information without chunking or additional preprocessing.
 
 ## 1. Evaluation Conditions
 
