@@ -9,7 +9,23 @@ Re-kNN is an evaluation-oriented vector search and inference library that rethin
 Unlike conventional approaches, it provides explicit and reproducible evidence for each result,
 making it suitable for evaluation in decision-making and audit-sensitive environments.
 
-* Current evaluation and reported benchmarks assume single-threaded execution. Concurrent use is not yet recommended in production-like scenarios.
+## Important Notes
+
+Re-kNN is currently provided as an evaluation-oriented release.
+
+Its value should be assessed not only by raw search speed, but also by determinism, reproducibility, explicit evidence, and support for unknown data.
+
+Please note:
+
+- The core Re-kNN DLL is **not open source** and is distributed under the **Re-kNN Evaluation License**.
+- Only the sample code in this repository is provided under the **Apache License 2.0**.
+- This release is intended for **technical evaluation, benchmarking, and prototyping**.
+- It is **not intended for production use** at this stage.
+- Current evaluation and reported benchmarks assume single-threaded execution, and concurrent use is not yet fully evaluated or recommended for production-like scenarios.
+- APIs, behavior, and package contents may change in future versions.
+- Please review the **EULA**, **Concepts**, and **Use Cases** documents before evaluation.
+
+For commercial use, operational use, or collaboration, please contact the author separately.
 
 ## Quick Links
 
