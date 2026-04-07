@@ -13,6 +13,7 @@
 // limitations under the License.
 
 using DocuSleuthBertLibrary;
+using FuutaSystemSvcCommonLibrary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,6 +44,31 @@ namespace RekNNBERT
                     if (RekNNBERT.Settings.fromFile<Settings, SettingsSerializerContext>(System.IO.Path.Combine(basePath, "settings.json")) is Settings data)
                     {
                         Settings = data;
+
+                        string fname = System.IO.Path.Combine(basePath, "fileinfo.txt");
+                        if (System.IO.File.Exists(fname))
+                        {
+                            Settings.TextFile2IdDictionary.Clear();
+                            Settings.Id2TextFileDictionary.Clear();
+
+                            FSCLTextFileHandler.LoadFileV2(fname, (buffer) =>
+                            {
+                                while (buffer.Count >= 2)
+                                {
+                                    string line1 = buffer[0];
+                                    string line2 = buffer[1];
+
+                                    buffer.RemoveRange(0, 2);
+
+                                    if (int.TryParse(line1, out int id))
+                                    {
+                                        Settings.TextFile2IdDictionary.TryAdd(line2, id);
+                                        Settings.Id2TextFileDictionary.TryAdd(id, line2);
+                                    }
+                                }
+                            },
+                            null);
+                        }
                     }
                     else
                     {
@@ -60,6 +86,23 @@ namespace RekNNBERT
                 if (System.IO.Path.GetDirectoryName(exeFileFullPath) is string basePath)
                 {
                     Settings.toFile<Settings, SettingsSerializerContext>(System.IO.Path.Combine(basePath, "settings.json"));
+
+                    string fname = System.IO.Path.Combine(basePath, "fileinfo.txt");
+                    FSCLTextFileHandler save = new FSCLTextFileHandler(fname, 1000, null);
+
+                    try
+                    {
+                        foreach (KeyValuePair<string, int> kv in Settings.TextFile2IdDictionary)
+                        {
+                            save.SaveLine(kv.Value.ToString());
+                            save.SaveLine(kv.Key);
+                        }
+                    }
+                    finally
+                    {
+                        save.Flush();
+                        save.Close();
+                    }
                 }
             }
         }

@@ -107,21 +107,21 @@ namespace RekNNBERT
 
         public IdFileDictInfo TextFile2IdValues
         {
-            get
-            {
-                IdFileDictInfo result = new();
-                result.ids = new int[TextFile2IdDictionary.Count];
-                result.Names = new string[TextFile2IdDictionary.Count];
+            //get
+            //{
+            //    IdFileDictInfo result = new();
+            //    result.ids = new int[TextFile2IdDictionary.Count];
+            //    result.Names = new string[TextFile2IdDictionary.Count];
 
-                for(int i = 0; i < TextFile2IdDictionary.Count; i++)
-                {
-                    var kvp = TextFile2IdDictionary.ElementAt(i);
-                    result.Names[i] = kvp.Key;
-                    result.ids[i] = kvp.Value;
-                }
+            //    for(int i = 0; i < TextFile2IdDictionary.Count; i++)
+            //    {
+            //        var kvp = TextFile2IdDictionary.ElementAt(i);
+            //        result.Names[i] = kvp.Key;
+            //        result.ids[i] = kvp.Value;
+            //    }
 
-                return result;
-            }
+            //    return result;
+            //}
             set
             {
                 TextFile2IdDictionary.Clear();

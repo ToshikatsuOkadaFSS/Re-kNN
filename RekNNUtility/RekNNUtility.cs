@@ -113,40 +113,40 @@ namespace RekNNUtility
 
     public class RekNNUtility
     {
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern bool Initialize(ModeEnum mode, int instanceNum);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Load(int instanceNo, byte* utf8Text, int textLength);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern int Delete(int instanceNo, int mainId, int subId);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe double GetTotalVector(int instanceNo);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Save(int instanceNo, byte* utf8Text, int textLength);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool SaveWithCount(int instanceNo, byte* utf8Text, int textLength, int count);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* SimpleClustering(int instanceNo);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 
 
@@ -194,9 +194,51 @@ namespace RekNNUtility
 
         public int dimension { get; }
 
+        /// <summary>
+        /// DLLのリゾルバー。DLLが見つからない場合に呼び出される。ここでDLLの場所を指定する。
+        /// </summary>
+        /// <param name="libraryName"></param>
+        /// <param name="assembly"></param>
+        /// <param name="searchPath"></param>
+        /// <returns></returns>
+        private static IntPtr ResolveNativeLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            if (libraryName == "FuutaSystemSvcVectorLibrary")
+            {
+                // 実行ファイルの場所を取得
+                string baseDir = AppContext.BaseDirectory;
+
+                // OSに応じた拡張子と接頭辞を判定
+                string libFileName = libraryName;
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    libFileName = $"{libraryName}.dll";
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    libFileName = $"{libraryName}.so";
+                }
+
+                // 「実行ファイル/DLL/ライブラリ名」のパスを作成
+                string libPath = Path.Combine(baseDir, "DLL", libFileName);
+
+                // ライブラリをロード
+                if (NativeLibrary.TryLoad(libPath, out IntPtr handle))
+                {
+                    return handle;
+                }
+            }
+
+            // 見つからない場合は IntPtr.Zero を返すと、標準の探索ルールにフォールバックされる
+            return IntPtr.Zero;
+        }
 
         public RekNNUtility(ModeEnum mode, int instanceNum)
         {
+            // リゾルバーを登録する
+            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), ResolveNativeLibrary);
+
+
             Initialize(mode, instanceNum);
 
             this.CurrentMode = mode;
