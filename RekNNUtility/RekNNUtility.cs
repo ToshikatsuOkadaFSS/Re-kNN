@@ -19,6 +19,21 @@ namespace RekNNUtility
         CIFAR10 = 3,
     }
 
+    public enum StatusDetailEnum
+    {
+        Succed = 0,
+
+        ErrorBadInstanceNo = -1,
+
+        ErrorUtf8TextIsNull = -2,
+
+        ErrorBadTextLength = -3,
+
+        ErrorNotInitialized = -4,
+
+        ErrorOthterException = -99,
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct SearchResult
     {
@@ -149,6 +164,8 @@ namespace RekNNUtility
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 
+        [DllImport("FuutaSystemSvcVectorLibrary.dll")]
+        private static extern unsafe StatusDetailEnum GetStatusDetail();
 
 
         /// <summary>
@@ -269,7 +286,16 @@ namespace RekNNUtility
             {
                 fixed (byte* pText = utf8Bytes)
                 {
-                    Load(instanceNo, pText, utf8Bytes.Length);
+                    if (Load(instanceNo, pText, utf8Bytes.Length))
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        Console.WriteLine($"Load:true:{status}");
+                    }
+                    else
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        Console.WriteLine($"Load:falase:{status}");
+                    }
                 }
             }
 
@@ -1326,7 +1352,16 @@ namespace RekNNUtility
             {
                 fixed (byte* pText = utf8Bytes)
                 {
-                    Save(modelNo, pText, utf8Bytes.Length);
+                    if (Save(modelNo, pText, utf8Bytes.Length))
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        Console.WriteLine($"Save:true:{status}");
+                    }
+                    else
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        Console.WriteLine($"Save:falase:{status}");
+                    }
                 }
             }
 
