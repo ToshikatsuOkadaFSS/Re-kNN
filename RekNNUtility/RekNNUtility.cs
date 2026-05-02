@@ -167,6 +167,9 @@ namespace RekNNUtility
         [DllImport("FuutaSystemSvcVectorLibrary.dll")]
         private static extern unsafe StatusDetailEnum GetStatusDetail();
 
+        [DllImport("FuutaSystemSvcVectorLibrary.dll")]
+        private static extern bool RefineAll(int instanceNo, int limit);
+
 
         /// <summary>
         /// 画像を表示する関数(引数はデータ番号)
@@ -1520,6 +1523,19 @@ namespace RekNNUtility
             }
 
             return ret;
+        }
+
+        public bool RefineDatabaseForCurrentModel(int limit)
+        {
+            return RefineDatabase(0, limit);
+        }
+
+
+
+
+        public bool RefineDatabase(int instanceNo, int limit)
+        {
+            return RekNNUtility.RefineAll(instanceNo, limit);
         }
     }
 }
