@@ -478,20 +478,20 @@ namespace RekNNUtility
                     int labelErrorCount = 0;
                     int unknownCount = 0;
 
-                    Console.WriteLine($"refine, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
-                    writer.WriteLine($"refine, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
+                    Console.WriteLine($"refine, refineflag, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
+                    writer.WriteLine($"refine, refineflag, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
 
-                    Console.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
-                    writer.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
+                    Console.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"}. {refineFlag}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
+                    writer.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"}. {refineFlag}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
 
-                    string line2 = $"{refineThreshold?.ToString("0.00") ?? "none"},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray());
+                    string line2 = $"{refineThreshold?.ToString("0.00") ?? "none"},{refineFlag},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray());
 
                     Console.WriteLine("label," + string.Join(",", allLabels.Select(a => a.ToString())) + ",unknown");
                     writer.WriteLine("label," + string.Join(",", allLabels.Select(a => a.ToString())) + ",unknown");
 
                     foreach ((int? predictedLabel, int chklabel, int chkpos, int mainId, int subId, double score) in reslt.Item3)
                     {
-                        writer3.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold.ToString("0.00")}, {skipLabel}, {string.Join("-", targetLabels.Select(a => a.ToString()))}, {predictedLabel ?? -1}, {chklabel}, {chkpos}, {mainId}, {subId}, {score.ToString("0.0000")}");
+                        writer3.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"},{refineFlag},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold.ToString("0.00")}, {skipLabel}, {string.Join("-", targetLabels.Select(a => a.ToString()))}, {predictedLabel ?? -1}, {chklabel}, {chkpos}, {mainId}, {subId}, {score.ToString("0.0000")}");
                     }
 
                     foreach (byte label in allLabels)
