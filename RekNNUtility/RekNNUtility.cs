@@ -164,10 +164,10 @@ namespace RekNNUtility
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 
-        [DllImport("FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe StatusDetailEnum GetStatusDetail();
 
-        [DllImport("FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern bool RefineAll(int instanceNo, int limit);
 
 
