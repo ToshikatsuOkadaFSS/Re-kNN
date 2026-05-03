@@ -65,8 +65,13 @@ while (true)
     Console.WriteLine("5 ... Check Database");
     Console.WriteLine("6 ... Refine Database (limit : 10minutes) & Save");
     Console.WriteLine("7 ... Refine Database (all documents) & Save");
+<<<<<<< HEAD
     Console.WriteLine("8 ... Refine Database (Specified File , no save");
     Console.WriteLine("9 ... Save (Current Model)");
+=======
+    Console.WriteLine("8 ... Save (Current Model)");
+    Console.WriteLine("9 ... Refine Database (BULK) & Save");
+>>>>>>> 914d5b0ecdaebb19ea4977308633a285655e29a3
     Console.WriteLine("99 ... Exit");
     Console.WriteLine($"Input Command No:");
 
@@ -134,6 +139,12 @@ while (true)
                     break;
 
                 case 9:
+                    utility.Save(0, RekNNBERT.CommonValues.Settings.DatabasePath);
+                    RekNNBERT.CommonValues.SaveSettings();
+                    break;
+
+                case 9:
+                    utility.RefineDatabase(0, -1);
                     utility.Save(0, RekNNBERT.CommonValues.Settings.DatabasePath);
                     RekNNBERT.CommonValues.SaveSettings();
                     break;

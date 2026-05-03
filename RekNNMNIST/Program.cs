@@ -212,6 +212,7 @@ while (true)
     Console.WriteLine("10 ... Check Score(All Labels)");
     Console.WriteLine("14 ... Save (Current Model)");
     Console.WriteLine("13 ... Get Clustering Results");
+    Console.WriteLine("15 ... Refine All Database");
 
     Console.WriteLine($"Single instance test. (0 to 8 Labels)");
     Console.WriteLine("3 ... Learn Limited Label(0 to 8)");
@@ -219,6 +220,7 @@ while (true)
     Console.WriteLine("9 ... Refine Database(0 to 8)");
     Console.WriteLine("11 ... Check Score(0 to 8)");
     Console.WriteLine("14 ... Save (Current Model)");
+    Console.WriteLine("15 ... Refine All Database");
 
     Console.WriteLine("Batch test.");
     //Console.WriteLine("6 ... Test(Specified Margin)");
@@ -451,6 +453,10 @@ while (true)
 
                 case 14:
                     utility.Save(0, RekNNMNIST.CommonValues.Settings.DatabasePath);
+                    break;
+
+                case 15:
+                    utility.RefineDatabaseForCurrentModel(-1);
                     break;
 
                 default:
