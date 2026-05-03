@@ -233,10 +233,12 @@ namespace RekNNUtility
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     libFileName = $"{libraryName}.dll";
+                    Console.WriteLine($"Win:Lib:{libFileName}");
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
                     libFileName = $"{libraryName}.so";
+                    Console.WriteLine($"Linux:Lib:{libFileName}");
                 }
 
                 // 「実行ファイル/DLL/ライブラリ名」のパスを作成
