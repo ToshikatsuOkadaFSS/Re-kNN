@@ -6,7 +6,7 @@
   "DatabasePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\database",
   "SimilarityThreshold": 0.9,
   "SearchMaxNumForAddVector": 5,
-  "MaxThread": 4,
+  "MaxThread": 12,
   "KValues": [
     1,
     2,
@@ -55,5 +55,6 @@
   "RefineThresholds": [
     null,
     0.01
-  ]
+  ],
+  "Refine": [ true, false ]
 }
