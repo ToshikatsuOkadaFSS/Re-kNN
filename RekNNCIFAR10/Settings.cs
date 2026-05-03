@@ -87,5 +87,10 @@ namespace RekNNCIFAR10
         /// Refine用パラメタ
         /// </summary>
         public double?[] RefineThresholds { get; set; } = new double?[] { null, 0.01 };
+
+        /// <summary>
+        /// Refine用パラメタ
+        /// </summary>
+        public bool[] Refine { get; set; } = new bool[] { false, true };
     }
 }

@@ -308,30 +308,33 @@ namespace RekNNUtility
 
 
 
-        public void Test_by_Pattern(int searchMax, string logPath, int maxThread, IEnumerable<int> kValues, IEnumerable<double> detectThresholds, IEnumerable<int> allLabels, IEnumerable<int> dropLabels, IEnumerable<double> addVectorThresholds, IEnumerable<double?> refineThresholds)
+        public void Test_by_Pattern(int searchMax, string logPath, int maxThread, IEnumerable<int> kValues, IEnumerable<double> detectThresholds, IEnumerable<int> allLabels, IEnumerable<int> dropLabels, IEnumerable<double> addVectorThresholds, IEnumerable<double?> refineThresholds, bool[] refine)
         {
             //FuutaSystemSvcVectorLibrary.CommonValues.Initialize(RekNNMNIST, )
 
             // data は threshold, dropLabel, targetLabels, allLabels
-            List<(double, int, IEnumerable<int>, IEnumerable<int>, double?)> testParams = new();
+            List<(double, int, IEnumerable<int>, IEnumerable<int>, double?, bool)> testParams = new();
 
             // パラメタ生成
-            foreach(double? refineThreshold in refineThresholds)
+            foreach (bool refineFlag in refine)
             {
-                foreach (double threshold in addVectorThresholds)
+                foreach (double? refineThreshold in refineThresholds)
                 {
-                    foreach (byte dropLabel in dropLabels)
+                    foreach (double threshold in addVectorThresholds)
                     {
-                        List<int> targetLabels = new();
-                        foreach (int chk in allLabels)
+                        foreach (byte dropLabel in dropLabels)
                         {
-                            if (chk != dropLabel)
+                            List<int> targetLabels = new();
+                            foreach (int chk in allLabels)
                             {
-                                targetLabels.Add(chk);
+                                if (chk != dropLabel)
+                                {
+                                    targetLabels.Add(chk);
+                                }
                             }
-                        }
 
-                        testParams.Add((threshold, dropLabel, targetLabels, allLabels, refineThreshold));
+                            testParams.Add((threshold, dropLabel, targetLabels, allLabels, refineThreshold, refineFlag));
+                        }
                     }
                 }
             }
@@ -347,17 +350,17 @@ namespace RekNNUtility
 
             Parallel.For(0, testParams.Count, (modelNo) =>
             {
-                (double, int, IEnumerable<int>, IEnumerable<int>, double?) arg = testParams[modelNo];
+                (double, int, IEnumerable<int>, IEnumerable<int>, double?, bool) arg = testParams[modelNo];
 
-                string logFileName = System.IO.Path.Combine(logPath, $"result-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}.csv");
+                string logFileName = System.IO.Path.Combine(logPath, $"result-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}-{arg.Item6}.csv");
                 FileInfo finfo = new(logFileName);
                 using StreamWriter writer = new(finfo.Open(FileMode.Create, FileAccess.Write, FileShare.Read));
 
-                string logFileName2 = System.IO.Path.Combine(logPath, $"result2-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}.csv");
+                string logFileName2 = System.IO.Path.Combine(logPath, $"result2-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}-{arg.Item6}.csv");
                 FileInfo finfo2 = new(logFileName2);
                 using StreamWriter writer2 = new(finfo2.Open(FileMode.Create, FileAccess.Write, FileShare.Read));
 
-                string logFileName3 = System.IO.Path.Combine(logPath, $"result3-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}.csv");
+                string logFileName3 = System.IO.Path.Combine(logPath, $"result3-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}-{arg.Item6}.csv");
                 FileInfo finfo3 = new(logFileName3);
 
                 using StreamWriter writer3 = new(finfo3.Open(FileMode.Create, FileAccess.Write, FileShare.Read)); try
@@ -368,7 +371,7 @@ namespace RekNNUtility
                     writer3.WriteLine($"refine, k, dbThreshold, detectThreshold, skipLabel, targetLabels, predictLabels, testLabel, testNo, voteLabel, voteNo, voteScore");
 
                     TestSub(
-                        modelNo, writer, writer2, writer3, arg.Item2, arg.Item3, arg.Item4, searchMax, arg.Item1, arg.Item5,
+                        modelNo, writer, writer2, writer3, arg.Item2, arg.Item3, arg.Item4, searchMax, arg.Item1, arg.Item5, arg.Item6,
                         kValues, detectThresholds);
                 }
                 catch (Exception err)
@@ -412,6 +415,7 @@ namespace RekNNUtility
             int searchMax, 
             double addVectorThreshold, 
             double? refineThreshold,
+            bool refineFlag,
             IEnumerable<int> kValues,
             IEnumerable<double> detectThresholds)
         {
@@ -448,6 +452,11 @@ namespace RekNNUtility
             if (refineThreshold != null)
             {
                 RefineDatabase(modelNo, searchMax, targetLabels, addVectorThreshold, refineThreshold.Value);
+            }
+
+            if (refineFlag)
+            {
+                RefineAll(modelNo, searchMax);
             }
 
             // 評価

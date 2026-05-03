@@ -364,7 +364,8 @@ while (true)
                         CommonValues.Settings.AllLabels,
                         CommonValues.Settings.DropLabels,
                         CommonValues.Settings.AddVectorThresholds,
-                        CommonValues.Settings.RefineThresholds);
+                        CommonValues.Settings.RefineThresholds,
+                        CommonValues.Settings.Refine);
                     break;
 
                 case 8:
@@ -405,7 +406,8 @@ while (true)
                         new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },
                         new int[] { 0, 1, 2, 4, 8, 9 },
                         new double[] { 0.9, 0.95, 0.98 },
-                        new double?[] { null, 0.01 }
+                        new double?[] { null, 0.01 },
+                        new bool[] { false, true }
                     );
                     break;
 
