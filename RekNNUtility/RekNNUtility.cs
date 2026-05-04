@@ -367,8 +367,8 @@ namespace RekNNUtility
                 {
                     semaphore.WaitOne();
 
-                    writer2.WriteLine($"refine, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels, predictLabels, {string.Join(",", allLabels.Select(a => a.ToString()))}, Unknown");
-                    writer3.WriteLine($"refine, k, dbThreshold, detectThreshold, skipLabel, targetLabels, predictLabels, testLabel, testNo, voteLabel, voteNo, voteScore");
+                    writer2.WriteLine($"refine, refineflag, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels, predictLabels, {string.Join(",", allLabels.Select(a => a.ToString()))}, Unknown");
+                    writer3.WriteLine($"refine, refineflag, k, dbThreshold, detectThreshold, skipLabel, targetLabels, predictLabels, testLabel, testNo, voteLabel, voteNo, voteScore");
 
                     TestSub(
                         modelNo, writer, writer2, writer3, arg.Item2, arg.Item3, arg.Item4, searchMax, arg.Item1, arg.Item5, arg.Item6,
