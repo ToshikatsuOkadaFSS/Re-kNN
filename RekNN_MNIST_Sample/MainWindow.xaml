@@ -71,15 +71,17 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="1*"/>
-                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="50"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
+                        <TextBlock Grid.Column="0" Grid.Row="0" Text="Loose" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="2"/>
                         <Slider
                             x:Name="ThresholdSlider"
                             Grid.Row="0"
                             Grid.Column="1"
                             Header="Threshold"
-                            Minimum="50"
+                            Minimum="10"
                             Maximum="99"
                             Value="60"
                             StepFrequency="1"
@@ -90,10 +92,14 @@
                             Grid.Row="0" 
                             Grid.Column="2" 
                             Text="60" 
+                            Foreground="PaleVioletRed"
+                            FontSize="28"
                             VerticalAlignment="Center" 
                             HorizontalAlignment="Center" 
                             Margin="2"/>
+                        <TextBlock Grid.Column="3" Grid.Row="0" Text="Strict" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="2"/>
 
+                        <TextBlock Grid.Column="0" Grid.Row="1" Text="Few" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="2"/>
                         <Slider
                             x:Name="VoteSlider"
                             Grid.Row="1"
@@ -110,9 +116,12 @@
                             Grid.Row="1" 
                             Grid.Column="2" 
                             Text="5" 
+                            Foreground="PaleVioletRed"
+                            FontSize="28"
                             VerticalAlignment="Center" 
                             HorizontalAlignment="Center" 
                             Margin="2"/>
+                        <TextBlock Grid.Column="3" Grid.Row="1" Text="Many" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="2"/>
 
 
                     </Grid>

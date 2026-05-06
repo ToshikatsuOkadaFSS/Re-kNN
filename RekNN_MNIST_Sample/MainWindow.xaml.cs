@@ -563,7 +563,14 @@ namespace RekNN_MNIST_Sample
             // これを表示
             displayImages.Clear();
 
-            TextBlockResult.Text = $"Predict Result: {result.Item1?.Item1.ToString() ?? "Unknown"} : Score = {result.Item1?.Item2.ToString("0.0000") ?? "null"}";
+            if (result.Item1.HasValue)
+            {
+                TextBlockResult.Text = $"Predict Result: {result.Item1.Value.Item1.ToString()} : Score = {result.Item1.Value.Item2.ToString("0.0000")}";
+            }
+            else
+            {
+                TextBlockResult.Text = $"Predict Result: Unknown";
+            }
 
             for (int i = 0; i < result.Item2.Count; i++)
             {
