@@ -124,6 +124,7 @@ namespace RekNN_MNIST_Sample
             RekNNUtility.RekNNUtility.DisplayMessage = DisplayMessage;
 
             utility.LoadModel(0, RekNN_MNIST_Sample.CommonValues.Settings.DatabasePath);
+            utility.SetDebugMode(DebugModeEnum.None);
 
             int imageNum = 60000;
             ImageHeader imgHeader = new ImageHeader();

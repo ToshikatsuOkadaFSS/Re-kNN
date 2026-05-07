@@ -31,7 +31,18 @@ namespace RekNNUtility
 
         ErrorNotInitialized = -4,
 
+        ErrorFileNotFound = -5,
+
+        ErrorIOException = -6,
+
         ErrorOthterException = -99,
+    }
+
+    public enum DebugModeEnum
+    {
+        None = 0,
+        Console = 1,
+        Debug = 2,
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -170,6 +181,9 @@ namespace RekNNUtility
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern bool RefineAll(int instanceNo, int limit);
 
+        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        private static extern void SetDebugMode(int mode);
+
 
         /// <summary>
         /// 画像を表示する関数(引数はデータ番号)
@@ -238,12 +252,12 @@ namespace RekNNUtility
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                 {
                     libFileName = $"{libraryName}.dll";
-                    DisplayMessage($"Win:Lib:{libFileName}");
+                    //DisplayMessage($"Win:Lib:{libFileName}");
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
                     libFileName = $"{libraryName}.so";
-                    DisplayMessage($"Linux:Lib:{libFileName}");
+                    //DisplayMessage($"Linux:Lib:{libFileName}");
                 }
 
                 // 「実行ファイル/DLL/ライブラリ名」のパスを作成
@@ -299,12 +313,12 @@ namespace RekNNUtility
                     if (Load(instanceNo, pText, utf8Bytes.Length))
                     {
                         StatusDetailEnum status = GetStatusDetail();
-                        DisplayMessage($"Load:true:{status}");
+                        DisplayMessage($"Load:true:{status.ToString()}");
                     }
                     else
                     {
                         StatusDetailEnum status = GetStatusDetail();
-                        DisplayMessage($"Load:falase:{status}");
+                        DisplayMessage($"Load:falase:{status.ToString()}");
                     }
                 }
             }
@@ -1632,6 +1646,16 @@ namespace RekNNUtility
                     NativeMemory.Free(result);
                 }
             }
+        }
+
+        /// <summary>
+        /// メッセージ表示モードの変更
+        /// </summary>
+        /// <param name="mode"></param>
+        public void SetDebugMode(DebugModeEnum mode)
+        {
+            int m = (int)mode;
+            SetDebugMode(m);
         }
     }
 }
