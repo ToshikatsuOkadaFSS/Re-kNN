@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "RekNN_MNIST_Sample (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "RekNN_MNIST_Sample (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "TrainImageFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\train-images.idx3-ubyte",
+  "TrainLabelFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\train-labels.idx1-ubyte",
+  "TestImageFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\t10k-images.idx3-ubyte",
+  "TestLabelFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\t10k-labels.idx1-ubyte",
+  "DatabasePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST-Sample\\database",
+  "SimilarityThreshold": 0.9,
+  "SearchMaxNumForAddVector": 5
+}
