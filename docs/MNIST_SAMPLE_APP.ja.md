@@ -1,4 +1,4 @@
-# MNIST SAMPLE APPLICATION
+# MNIST Sample Application
 
 ## 概要
 
@@ -13,52 +13,44 @@
 このサンプルアプリケーションでは、入力データを数字として十分に判定できない場合、`Unknown` として回答します。  
 また、推論結果だけでなく、推論の根拠となったデータも表示します。
 
-## オプション
-
-このアプリケーションでは、判定値と投票数をスライダーで変更することが出来ます。
-
-### 判定値
-
-推論結果の採用可否の判定値です。10～99 の間の値が設定可能です。Score が 設定値 ÷ 100 を超えた場合に推論を行います。これを満たさない場合は Unknown とします。
-
-### 投票数
-
-判定する際に参考とするデータの数です。1～10 の間の値が指定可能です。k-NN の k に相当します。但し、スコアベースで計算するため、k=2 でも問題ありません、
-
-## 注意点
-
-- 投票数が1でもスコアが低い場合は Unknown となります。
-- k-NN に似ていますが、同じと思うと混乱します。別のものだと考えてください。
-- 本アプリケーションは、根拠付きの推論のサンプルです。データの逐次追加/削除はこのアプリケーションでは実装していません。
-- Refine 処理についても実装していますが、結果への影響は軽微です。これは、MNIST データセットの規模が小さいためです。
-
 ## 使用方法
 
 ### MNIST のデータ準備
 
 1. MNIST のデータをダウンロードしてください。
 
-例) https://www.kaggle.com/datasets/hojjatk/mnist-dataset
+例）  
+https://www.kaggle.com/datasets/hojjatk/mnist-dataset
 
-2. settings.json ファイルの修正
+2. `settings.json` ファイルを修正してください。
 
-Visual Studio を使い、以下のファイを修正してください。
+以下のファイルを修正してください。
 
+```text
 RekNN_MNIST_Sample/settings.json
+```
 
-修正例）
+修正例：
 
+```json
+{
   "TrainImageFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\train-images.idx3-ubyte",
   "TrainLabelFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\train-labels.idx1-ubyte",
   "TestImageFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\t10k-images.idx3-ubyte",
   "TestLabelFilePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST\\t10k-labels.idx1-ubyte",
   "DatabasePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\MNIST-Sample\\database",
+  "SimilarityThreshold": 0.9,
+  "SearchMaxNumForAddVector": 5
+}
+```
+
+`SimilarityThreshold` と `SearchMaxNumForAddVector` は、通常は変更不要です。
 
 ## 画面イメージ
 
 ![SampleApp01](SampleApp01.png)
 
-1. MNIST のデータを用意して DB に登録してください。DB 登録後、保存処理は自動で実行されます。また、MNIST データの場所は `settings.json` で定義してください。DB登録後の起動では保存した DB を自動的に読み込むため、このボタンは使いません。
+1. MNIST のデータを用意して `Study from MNIST` ボタンを押して DB に登録してください。DB 登録後、保存処理は自動で実行されます。MNIST データの場所は `settings.json` で定義します。DB 登録後の起動では保存済みの DB を自動的に読み込むため、このボタンは通常使用しません。
 2. 起動直後は、手書き領域にサンプルデータが表示されています。`Clear` ボタンを押して、手書き領域を初期化してください。
 3. 手書き領域に、マウスで数字または任意の図形・文字を書いてください。
 4. 手書きが終了したら `Predict` ボタンを押してください。推論を実行します。
@@ -70,10 +62,10 @@ RekNN_MNIST_Sample/settings.json
 
 なお、上で説明していないボタン等の情報は以下の通りです。
 
-- `Refine Database` : DB 全体に対して Refine 処理を実行します。処理後、自動的に DB を保存します。
-- `Load Database` : DB を読み込みます。
-- `Save Database` : DB を書き出します。
-- 右下の TextBox : 動作ログを表示します
+* `Refine Database` : DB 全体に対して Refine 処理を実行します。処理後、自動的に DB を保存します。
+* `Load Database` : DB を読み込みます。
+* `Save Database` : DB を書き出します。
+* 右下の TextBox : 動作ログを表示します。
 
 ## オプション
 
@@ -81,23 +73,22 @@ RekNN_MNIST_Sample/settings.json
 
 ### 判定値
 
-推論結果を採用するかどうかを判断するためのしきい値です。  
+推論結果を採用するかどうかを判断するためのしきい値です。
 10～99 の間の値を設定できます。
 
-`Score` が `設定値 × 0.01` を超えた場合に推論結果を採用します。  
+`Score` が `設定値 × 0.01` を超えた場合に推論結果を採用します。
 この条件を満たさない場合は `Unknown` とします。
 
 ### 投票数
 
-判定する際に参考とするデータの数です。  
+判定する際に参考とするデータの数です。
 1～10 の間の値を指定できます。
 
 k-NN の `k` に相当する値ですが、本アプリケーションではスコアベースで判定を行うため、`k=2` のような小さい値でも利用できます。
 
 ## 注意点
 
-- 投票数が 1 の場合でも、スコアが低い場合は `Unknown` となります。
-- k-NN に似た考え方を含みますが、同一のものではありません。別の仕組みとして考えてください。
-- 本アプリケーションは、根拠付き推論を確認するためのサンプルです。データの逐次追加 / 削除は実装していません。
-- `Refine` 処理も実装していますが、このサンプルでは結果への影響は軽微です。これは、MNIST データセットの規模が比較的小さいためです。
-
+* 投票数が 1 の場合でも、スコアが低い場合は `Unknown` となります。
+* k-NN に似た考え方を含みますが、同一のものではありません。別の仕組みとして考えてください。
+* 本アプリケーションは、根拠付き推論を確認するためのサンプルです。データの逐次追加 / 削除は実装していません。
+* `Refine` 処理も実装していますが、このサンプルでは結果への影響は軽微です。これは、MNIST データセットの規模が比較的小さいためです。
