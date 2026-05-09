@@ -165,8 +165,6 @@ Refine 処理自体が与える影響については更に調査が必要だと�
 
 ![Re-kNN_MNIST_Performance_Pre-Refine_vs_Post-Refine_(Similarity=0.95)](Re-kNN_MNIST_Performance_Pre-Refine_vs_Post-Refine_(Similarity=0.95).png)
 
-* **Note**: `Refine = 0.01` は Refine 処理の終了判定値を示す。これは、Refine 対象データの割合が全体の 1% を下回った時点で処理を終了することを意味する。
-
 ## 5. 推論時間
 
 MNIST の全テストデータ (10,000件) に対して推論を行った際の所要時間を以下に示す。
