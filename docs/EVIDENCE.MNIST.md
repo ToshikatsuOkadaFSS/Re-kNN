@@ -24,10 +24,10 @@ Unless otherwise noted, the results in this report were obtained under the follo
 | **0.7** | 0.9312 | 0.0554 | 0.0134 | 0.9858 | 9312 | 554 | 134 | Reliability-oriented setting |
 | **0.9** | 0.3814 | 0.6184 | **0.0002** | **0.9995** | 3814 | 6184 | 2 | **High-reliability setting** |
 
-> * Accuracy (Total Acc) = Correct / Total number of test samples (10,000)  
+> * Accuracy (Total Acc) = Correct / Total number of test samples (10,000)
 > * Accuracy excluding Unknown = Correct / (Correct + Misclassified)
-> * Unknown Rate = Unknown / Total number of test samples (10,000) 
-> * Misclassification Rate = Misclassified / Total number of test samples (10,000) 
+> * Unknown Rate = Unknown / Total number of test samples (10,000)
+> * Misclassification Rate = Misclassified / Total number of test samples (10,000)
 
 ![Re-kNN_MNIST_Performance_vs_Detection_Threshold_Similarity=0.95_Refine=none](Re-kNN_MNIST_Performance_vs_Detection_Threshold_Similarity=0.95_Refine=none.png)
 
@@ -142,42 +142,51 @@ Total number of Unknown cases: 554
 #### Neighbor Data Used as Evidence
 ![unknown-43-voteLabel](unknown-43-voteLabel.png)
 
-## 4. Performance Improvement by Refine
+## 4. Impact of Refine on Classification Results
 
-Refine is a process that relocates data placed in inappropriate positions to more appropriate positions.
+Refine is a process that relocates data placed in inappropriate positions within the search structure to more appropriate positions.
 
-Refine can be seen to have the effect of reassigning some data that would otherwise be classified as Unknown into the known category when a high decision threshold is used.
-At a decision threshold of 0.9, many data points are filtered as Unknown; however, after applying Refine, the net change is a reduction of 36 Unknown cases, corresponding to an increase of 35 correct predictions and 1 additional misclassification.
-On the other hand, the accuracy among samples judged as known decreases slightly, from 99.95% to 99.92%. Further verification is needed, but Refine may have the effect of reallocating some Unknown data to the known category under a high unknown-detection threshold.
+The results show that Refine can reassign some data that would otherwise be classified as Unknown into the known category, especially when a high decision threshold is used.
+
+At a decision threshold of 0.9, many data points are filtered as Unknown. After applying Refine, the number of Unknown cases decreased by 35. This decrease corresponds to an increase of 35 correct predictions. In addition, the accuracy among samples judged as known increased slightly from 99.9476% to 99.9481%.
+
+On the other hand, at a decision threshold of 0.5, applying Refine decreased the number of correct predictions by 5, decreased the number of Unknown cases by 1, and increased the number of misclassifications by 6.
+
+At a decision threshold of 0.7, applying Refine decreased the number of Unknown cases by 15, while increasing the number of correct predictions by 10 and the number of misclassifications by 5.
+
+These results suggest that Refine can reduce Unknown classifications, especially when a high decision threshold is used, but it may also increase misclassifications depending on the threshold condition. Further investigation is needed to understand the impact of Refine on classification results.
 
 | Refine | Unknown-Detection Threshold | Accuracy (Total Acc) | Unknown Rate | Misclassification Rate | Accuracy excluding Unknown | Correct | Unknown | Misclassified | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| none | 0.5 | 0.9599 | 0.0105 | 0.0296 | 0.9700859019706922 | 9599 | 105 | 296 | - |
-| none | 0.7 | 0.9312 | 0.0554 | 0.0134 | 0.9858141012068601 | 9312 | 554 | 134 | - |
-| none | 0.9 | 0.3814 | 0.6184 | 0.0002 | 0.999475890985325 | 3814 | 6184 | 2 | - |
-| 0.01 | 0.5 | 0.9593 | 0.0105 | 0.0302 | 0.9694795351187468 | 9593 | 105 | 302 | - |
-| 0.01 | 0.7 | 0.9325 | 0.0535 | 0.014 | 0.9852086634970946 | 9325 | 535 | 140 | - |
-| 0.01 | 0.9 | 0.3849 | 0.6148 | 0.0003 | 0.9992211838006231 | 3849 | 6148 | 3 | - |
+| Not Applied | 0.5 | 0.9599 | 0.0105 | 0.0296 | 0.9700859019706922 | 9599 | 105 | 296 | - |
+| Not Applied | 0.7 | 0.9312 | 0.0554 | 0.0134 | 0.9858141012068601 | 9312 | 554 | 134 | - |
+| Not Applied | 0.9 | 0.3814 | 0.6184 | 0.0002 | 0.999475890985325 | 3814 | 6184 | 2 | - |
+| Applied | 0.5 | 0.9594 | 0.0104 | 0.0302 | 0.969482619240097 | 9594 | 104 | 302 | - |
+| Applied | 0.7 | 0.9322 | 0.0539 | 0.0139 | 0.985308106965437 | 9322 | 539 | 139 | - |
+| Applied | 0.9 | 0.3849 | 0.6149 | 0.0002 | 0.9994806543754868 | 3849 | 6149 | 2 | - |
 
-![Re-kNN_MNIST_Performance_Pre-Refine_vs_Post-Refine_(Similarity=0.95)](Re-kNN_MNIST_Performance_Pre-Refine_vs_Post-Refine_(Similarity=0.95).png)
-
-* **Note**: `Refine = 0.01` indicates the termination criterion for the Refine process. The process stops when the proportion of data subject to Refine falls below 1% of the total.
+![Re-kNN_MNIST_Performance_Pre-Refine_vs_Post-Refine_(Similarity=0.95)](Re-kNN_MNIST_Performance_Pre-Refine_vs_Post-Refine_Similarity=0.95.png)
 
 ## 5. Inference Time
 
-The processing time for running inference on all MNIST test samples (10,000 samples) is shown below.
+The processing time for running inference on all 10,000 MNIST test samples after loading the DB is shown below.
 
-* **Measurement Environment**: Ryzen 9 5900HX (3.3GHz) / Windows 11 / .NET 8
+* **Measurement Environment**: Ryzen 9 5900HX (3.3 GHz) / Windows 11 / .NET 8
+* **Execution Condition**: single-thread
 * **Target Data**: MNIST (784 dimensions)
 * **Total Processing Time (10,000 samples)**: $4,350.51 ms$
 * **Average Latency per Sample**: **$435\ \mu s$**
 
 ## 6. Unknown Detection
 
-The following results were obtained by evaluating MNIST while excluding each label from index registration, one at a time.
+The following results were obtained by evaluating MNIST while excluding each label from index registration, one at a time.  
 These results were measured with the unknown-detection threshold set to 0.7.
 
-### Evaluation Results Including Unknown Predictions
+In this section, "Correct" indicates the number of known-label samples correctly classified with their true labels.  
+When a sample belonging to an unknown label that was not registered in the index is classified as `Unknown`, it is not counted as Correct; instead, it is counted as Unknown.  
+Unknown-detection performance for the unknown labels is shown separately in "Evaluation Results for Unknown Labels" below.
+
+### Evaluation Results Including Unknown Labels
 
 | Unknown Label | Accuracy (Total Acc) | Unknown Rate | Misclassification Rate | Correct | Unknown | Misclassified | Notes |
 |:---:|:---|:---|:---|---:|---:|---:|:---|
@@ -197,7 +206,7 @@ These results were measured with the unknown-detection threshold set to 0.7.
 
 ![TotalScore_includeexcludedlabel(unknown,miss)](TotalScore_includeexcludedlabel(unknown,miss).png)
 
-### Evaluation Results Excluding Unknown Predictions
+### Evaluation Results for Known Labels Only
 
 | Unknown Label | Accuracy (Total Acc) | Accuracy excluding Unknown | Correct | Misclassified | Unknown | Notes |
 |:---:|:---|:---|---:|---:|---:|:---|
@@ -219,12 +228,12 @@ These results were measured with the unknown-detection threshold set to 0.7.
 
 ### Evaluation Results for Unknown Labels
 
-For labels that were not registered in the index (= unknown labels), the result must be either **Unknown** or **misclassified**.
+For labels that were not registered in the index (= unknown labels), the result is either **Unknown** or **misclassified**.
 
 | Unknown Label | Unknown Rate | Misclassification Rate | Unknown | Misclassified | Notes |
 |:---:|:---|:---|---:|---:|:---|
 | 0 | 0.6745 | 0.3255 | 661 | 319 |  |
-| 1 | 0.6608 | 0.3392  | 750 | 385 |  |
+| 1 | 0.6608 | 0.3392 | 750 | 385 |  |
 | 2 | 0.6298 | 0.3702 | 650 | 382 |  |
 | 3 | 0.4683 | 0.5317 | 473 | 537 |  |
 | 4 | 0.1477 | 0.8523 | 145 | 837 |  |
@@ -240,7 +249,7 @@ For labels that were not registered in the index (= unknown labels), the result 
 
 In MNIST, labels with similar shapes (4, 7, and 9) have lower Unknown rates.  
 This is likely caused by shape similarity.  
-Because Re-kNN uses nearest-neighbor search, visually similar samples tend to be detected with relatively high similarity in these cases.  
+Through nearest-neighbor search, visually similar samples tend to be detected with relatively high similarity in these cases.  
 In practical use, the decision threshold should be adjusted according to the use case to control sensitivity.  
 This tendency is particularly notable for label 4. It likely reflects the fact that visually similar shapes tend to produce higher similarity scores.
 
@@ -248,12 +257,11 @@ This tendency is particularly notable for label 4. It likely reflects the fact t
 
 The memory consumption after loading all MNIST data is shown below.
 
-* **Measurement Environment**: Ryzen 9 5900HX (3.3GHz) / Windows 11 / .NET 8
+* **Measurement Environment**: Ryzen 9 5900HX (3.3 GHz) / Windows 11 / .NET 8
 * **Measurement Condition**: Immediately after loading all index information
 * **Other Running Processes**: Other Windows processes were active during measurement.
 * **Target Data**: MNIST (784 dimensions)
 * **Memory Consumption**: 473.0 MB (measured from the Memory column in the Task Manager process tab)
 
----
 *Created by Re-kNN Evaluation Suite (2026)*
 
