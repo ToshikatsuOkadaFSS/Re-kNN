@@ -38,8 +38,8 @@ Refine 処理は、データ登録時に不適切な位置に配置された可�
 
 ### クラスタリング結果
 
-* crawl-300d-2M.vec (After registration): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRegistration.txt
-* crawl-300d-2M.vec (After Refine): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRefine.txt
+* crawl-300d-2M.vec (After registration): [crawl-300d-2M-095-AfterRegistration.txt](../SemanticContextClustering/crawl-300d-2M-095-AfterRegistration.txt)
+* crawl-300d-2M.vec (After Refine): [crawl-300d-2M-095-AfterRefine.txt](../SemanticContextClustering/crawl-300d-2M-095-AfterRefine.txt)
 
 #### 統計情報
 
