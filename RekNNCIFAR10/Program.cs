@@ -282,7 +282,8 @@ while (true)
                         RekNNCIFAR10.CommonValues.Settings.AllLabels,
                         RekNNCIFAR10.CommonValues.Settings.DropLabels,
                         RekNNCIFAR10.CommonValues.Settings.AddVectorThresholds,
-                        RekNNCIFAR10.CommonValues.Settings.RefineThresholds);
+                        RekNNCIFAR10.CommonValues.Settings.RefineThresholds,
+                        RekNNCIFAR10.CommonValues.Settings.Refine);
                     break;
 
                 case 8:

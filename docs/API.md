@@ -1,34 +1,31 @@
 # Re-kNN API Specification
 
-The Re-kNN library is provided in the form of a DLL. This document describes how to call the library.
+This document describes how to call the Re-kNN library.
 
-## 1. Conditions
+## 1. Requirements
 
-This library is provided as a DLL built for win-x64.
+This library is provided as an x64 DLL for Windows and as an `.so` file for Linux/Ubuntu.
 
-**Warning**: Concurrent use is not recommended at this stage.
+**Note**: Although this library is designed to be thread-safe, it has not yet been sufficiently tested. When using it concurrently from multiple threads, please be aware that issues are likely to occur.
 
 ## 2. Basic Structure
 
-Re-kNN is designed on the assumption that multiple independent indexes will be deployed in memory. Therefore, it is necessary to specify the number of instances to be used by the system at initialization time.
+Re-kNN is designed to deploy multiple independent indexes in memory. Therefore, the number of instances used by the system must be specified during initialization.
 
-Search results return the IDs of the documents or entities associated with the vectors.
-Therefore, when registering a vector, it is necessary to specify IDs (Main and Sub).
-Sub is assumed to be subordinate to Main.
-For MNIST and similar datasets, the label number is registered as Main and the data number as Sub.
-For BERT and similar datasets, the document number is registered as Main and the sentence number within the document as Sub.
+Search results are designed to return IDs such as the document ID to which a vector belongs. Therefore, when registering vectors, IDs (`Main` and `Sub`) must be specified.
+`Sub` is assumed to be subordinate to `Main`.
 
-## 3. DLL I/F Definitions
+For MNIST and similar datasets, the label number is registered as `Main`, and the data number is registered as `Sub`.
+For BERT and similar datasets, the document number is registered as `Main`, and the sentence number within the document is registered as `Sub`.
 
-To call the DLL, the following definitions must be added on the caller side. This sample is written in C#.
+## 3. DLL / .so I/F Definitions
+
+To call the native library, the following definitions must be inserted on the caller side. This sample is written in C#.
 The code containing these definitions is `RekNNUtility.cs` in the repository. Refer to it as needed.
 
-Definition of structs:
+Struct and enum definitions:
 
 ```C#
-    /// <summary>
-    /// Operation mode
-    /// </summary>
     public enum ModeEnum
     {
         BERT = 1,
@@ -36,6 +33,32 @@ Definition of structs:
         MNIST = 2,
 
         CIFAR10 = 3,
+    }
+
+    public enum StatusDetailEnum
+    {
+        Success = 0,
+
+        ErrorBadInstanceNo = -1,
+
+        ErrorUtf8TextIsNull = -2,
+
+        ErrorBadTextLength = -3,
+
+        ErrorNotInitialized = -4,
+
+        ErrorFileNotFound = -5,
+
+        ErrorIOException = -6,
+
+        ErrorOtherException = -99,
+    }
+
+    public enum DebugModeEnum
+    {
+        None = 0,
+        Console = 1,
+        Debug = 2,
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -60,6 +83,9 @@ Definition of structs:
         public ResultItemMainAndSubDetail* ResultItemMainAndSubDetails;
     }
 
+
+
+
     [StructLayout(LayoutKind.Sequential)]
     public struct ResultItemMain
     {
@@ -77,6 +103,7 @@ Definition of structs:
 
         public ResultItemMain* values;
     }
+
 
     [StructLayout(LayoutKind.Sequential)]
     public struct ResultItemMainAndSub
@@ -97,6 +124,7 @@ Definition of structs:
 
         public ResultItemMainAndSub* values;
     }
+
 
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct PredictResult
@@ -122,82 +150,95 @@ Definition of structs:
 
         public Dictionary<int, List<ResultItemMainAndSub>> ResultItemMainAndSubDetails { get; } = new();
     }
-````
-
-Definition for calling the DLL:
-
-```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern bool Initialize(ModeEnum mode, int instanceNum);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe bool Load(int instanceNo, byte* utf8Text, int textLength);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern int Delete(int instanceNo, int mainId, int subId);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe double GetTotalVector(int instanceNo);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe bool Save(int instanceNo, byte* utf8Text, int textLength);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe bool SaveWithCount(int instanceNo, byte* utf8Text, int textLength, int count);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe SearchResult* SimpleClustering(int instanceNo);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
-
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
-        private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int docId, int subDocId);
 ```
 
-## 4. List of Functions
+DLL / .so call definitions:
 
-| Function Name                         | Feature                                                                   |
-| :------------------------------------ | :------------------------------------------------------------------------ |
-| [Initialize](#initialize)             | Initialize Re-kNN                                                         |
-| [Load](#load)                         | Load a saved database                                                     |
-| [Add](#add)                           | Add vector information                                                    |
-| [Refine](#refine)                     | Optimize the index structure                                              |
-| [Delete](#delete)                     | Delete vector information                                                 |
-| [Search](#search)                     | Search vector information                                                 |
-| [GetTotalVector](#gettotalvector)     | Get the number of registered vectors                                      |
-| [Save](#save)                         | Save the database to storage                                              |
-| [SaveWithCount](#savewithcount)       | Save the database with count information (for debugging, not recommended) |
-| [SimpleClustering](#simpleclustering) | Get clustering information                                                |
-| [Predict](#predict)                   | Run inference with the specified vector                                   |
-| [IsNeedRefine](#isneedrefine)         | Check whether a vector group is subject to Refine                         |
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern bool Initialize(ModeEnum mode, int instanceNum);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool Load(int instanceNo, byte* utf8Text, int textLength);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern int Delete(int instanceNo, int mainId, int subId);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe double GetTotalVector(int instanceNo);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool Save(int instanceNo, byte* utf8Text, int textLength);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool SaveWithCount(int instanceNo, byte* utf8Text, int textLength, int count);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe SearchResult* SimpleClustering(int instanceNo);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe StatusDetailEnum GetStatusDetail();
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern bool RefineAll(int instanceNo, int limit);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void SetDebugMode(int mode);
+```
+
+## 4. Function List
+
+| Function                              | Description                                                      |
+| :------------------------------------ | :--------------------------------------------------------------- |
+| [Initialize](#Initialize)             | Initializes Re-kNN                                               |
+| [Load](#Load)                         | Loads a saved DB                                                 |
+| [Add](#Add)                           | Adds vector information                                          |
+| [Refine](#Refine)                     | Optimizes the index structure                                    |
+| [Delete](#Delete)                     | Deletes vector information                                       |
+| [Search](#Search)                     | Searches vector information                                      |
+| [GetTotalVector](#GetTotalVector)     | Gets the number of registered vectors                            |
+| [Save](#Save)                         | Saves the DB to storage                                          |
+| [SaveWithCount](#SaveWithCount)       | Saves the DB with count information (for debugging / deprecated) |
+| [SimpleClustering](#SimpleClustering) | Gets cluster information                                         |
+| [Predict](#Predict)                   | Performs inference using a specified vector                      |
+| [IsNeedRefine](#IsNeedRefine)         | Checks whether a vector group is subject to Refine               |
+| [GetStatusDetail](#GetStatusDetail)   | Gets detailed execution result information                       |
+| [RefineAll](#RefineAll)               | Executes Refine in batch                                         |
+| [SetDebugMode](#SetDebugMode)         | Sets the debug mode                                              |
 
 ---
 
 ### Initialize
 
-Allocates the specified number of independent index regions.
-In the trial version, choose one of BERT (768 dimensions), MNIST (784 dimensions), or CIFAR10 (3072 dimensions).
+Allocates independent index areas for the specified number of instances.
+In the evaluation version, one of BERT (768 dimensions), MNIST (784 dimensions), or CIFAR10 (3072 dimensions) can be selected.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern bool Initialize(ModeEnum mode, int instanceNum);
 ```
 
-| Argument Type | Argument Name | Meaning                                              |
-| :------------ | :------------ | :--------------------------------------------------- |
-| ModeEnum      | mode          | Initialization mode (one of BERT, MNIST, or CIFAR10) |
+| Argument Type | Argument Name | Description                                    |
+| :------------ | :------------ | :--------------------------------------------- |
+| ModeEnum      | mode          | Initialization mode: BERT, MNIST, or CIFAR10   |
+| int           | instanceNum   | Number of index areas / DB instances to create |
 
-| Return Value | Meaning                  |
+| Return Value | Description              |
 | :----------- | :----------------------- |
 | true         | Initialization succeeded |
 | false        | Initialization failed    |
@@ -209,17 +250,17 @@ In the trial version, choose one of BERT (768 dimensions), MNIST (784 dimensions
 Loads index information from the specified storage into the specified instance.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Load(int instanceNo, byte* utf8Text, int textLength);
 ```
 
-| Argument Type | Argument Name | Meaning                                         |
-| :------------ | :------------ | :---------------------------------------------- |
-| int           | instanceNo    | Instance number                                 |
-| byte*         | utf8Text      | Path of the folder where the database was saved |
-| int           | textLength    | String length of utf8Text                       |
+| Argument Type | Argument Name | Description                                   |
+| :------------ | :------------ | :-------------------------------------------- |
+| int           | instanceNo    | Instance number                               |
+| byte*         | utf8Text      | Path name of the folder where the DB is saved |
+| int           | textLength    | String length of `utf8Text`                   |
 
-| Return Value | Meaning        |
+| Return Value | Description    |
 | :----------- | :------------- |
 | true         | Load succeeded |
 | false        | Load failed    |
@@ -231,21 +272,21 @@ Loads index information from the specified storage into the specified instance.
 Adds vector information to the specified instance.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 ```
 
-| Argument Type | Argument Name | Meaning                                                                              |
-| :------------ | :------------ | :----------------------------------------------------------------------------------- |
-| int           | instanceNo    | Instance number                                                                      |
-| float*        | vec           | Vectors to register (length vectors, each with the size specified at initialization) |
-| int           | length        | Number of vectors to register                                                        |
-| int           | mainId        | Main ID of the vectors to register                                                   |
-| int           | subId         | Sub ID of the vectors to register                                                    |
-| int           | searchMax     | Search width used when finding the registration destination (5 recommended)          |
-| double        | threshold     | Index match threshold                                                                |
+| Argument Type | Argument Name | Description                                                                                                      |
+| :------------ | :------------ | :--------------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo    | Instance number                                                                                                  |
+| float*        | vec           | Vectors to register. The number of vectors is `length`, and each vector has the size specified at initialization |
+| int           | length        | Number of vectors to register                                                                                    |
+| int           | mainId        | Main ID of the vectors to register                                                                               |
+| int           | subId         | Sub ID of the vectors to register                                                                                |
+| int           | searchMax     | Search width used when searching for the registration destination. `5` is recommended                            |
+| double        | threshold     | Threshold for index match judgment                                                                               |
 
-| Return Value | Meaning                |
+| Return Value | Description            |
 | :----------- | :--------------------- |
 | true         | Registration succeeded |
 | false        | Registration failed    |
@@ -257,24 +298,24 @@ Adds vector information to the specified instance.
 Optimizes the index structure of the specified vector information in the specified instance.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 ```
 
-| Argument Type | Argument Name | Meaning                                                                              |
-| :------------ | :------------ | :----------------------------------------------------------------------------------- |
-| int           | instanceNo    | Instance number                                                                      |
-| float*        | vec           | Vectors to refine (length vectors, each with the size specified at initialization) |
-| int           | length        | Number of vectors to register                                                        |
-| int           | mainId        | Main ID of the vectors to register                                                   |
-| int           | subId         | Sub ID of the vectors to register                                                    |
-| int           | searchMax     | Search width used when finding the registration destination (5 recommended)          |
-| double        | threshold     | Index match threshold                                                                |
+| Argument Type | Argument Name | Description                                                                                                      |
+| :------------ | :------------ | :--------------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo    | Instance number                                                                                                  |
+| float*        | vec           | Vectors to optimize. The number of vectors is `length`, and each vector has the size specified at initialization |
+| int           | length        | Number of vectors to optimize                                                                                    |
+| int           | mainId        | Main ID of the vectors to optimize                                                                               |
+| int           | subId         | Sub ID of the vectors to optimize                                                                                |
+| int           | searchMax     | Search width used when searching for the registration destination. `5` is recommended                            |
+| double        | threshold     | Threshold for index match judgment                                                                               |
 
-| Return Value | Meaning                                                                             |
-| :----------- | :---------------------------------------------------------------------------------- |
-| true         | Optimization was performed                                                          |
-| false        | Optimization was not performed (including cases where optimization was unnecessary) |
+| Return Value | Description                                                                        |
+| :----------- | :--------------------------------------------------------------------------------- |
+| true         | Optimization was executed                                                          |
+| false        | Optimization was not executed, including cases where optimization is not necessary |
 
 ---
 
@@ -283,18 +324,18 @@ Optimizes the index structure of the specified vector information in the specifi
 Deletes the specified vector information from the specified instance.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern int Delete(int instanceNo, int mainId, int subId);
 ```
 
-| Argument Type | Argument Name | Meaning                            |
-| :------------ | :------------ | :--------------------------------- |
-| int           | instanceNo    | Instance number                    |
-| int           | mainId        | Main ID of the vectors to register |
-| int           | subId         | Sub ID of the vectors to register  |
+| Argument Type | Argument Name | Description       |
+| :------------ | :------------ | :---------------- |
+| int           | instanceNo    | Instance number   |
+| int           | mainId        | Main ID to delete |
+| int           | subId         | Sub ID to delete  |
 
-| Return Value | Meaning |
-| :--- | :--- |
+| Return Value  | Description               |
+| :------------ | :------------------------ |
 | Numeric value | Number of deleted vectors |
 
 ---
@@ -302,26 +343,27 @@ Deletes the specified vector information from the specified instance.
 ### Search
 
 Searches the specified instance using the specified vector information.
-The amount of data returned may differ from the kValue specified in the argument.
+The number of returned data items may differ from the number specified by `kValue`.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
 ```
 
-| Argument Type | Argument Name | Meaning                                                                              |
-| :------------ | :------------ | :----------------------------------------------------------------------------------- |
-| int           | instanceNo    | Instance number                                                                      |
-| float*        | vec           | Vectors to search (length vectors, each with the size specified at initialization) |
-| int           | length        | Number of vectors to register                                                        |
-| int           | kValue        | Search range                                                                         |
+| Argument Type | Argument Name | Description                                                                                                         |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------------------ |
+| int           | instanceNo    | Instance number                                                                                                     |
+| float*        | vec           | Vectors to search with. The number of vectors is `length`, and each vector has the size specified at initialization |
+| int           | length        | Number of vectors to search with                                                                                    |
+| int           | kValue        | Search range                                                                                                        |
 
-| Return Value | Meaning                                                                            |
-| :----------- | :--------------------------------------------------------------------------------- |
-| ! null       | Search succeeded. Parse the structure for details. **Must be freed by the caller** |
-| null         | Search failed                                                                      |
+| Return Value | Description                                                                                                                                  |
+| :----------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
+| not null     | Search succeeded. The details are stored in the structure and should be parsed by the caller. **The caller must free the returned pointer.** |
+| null         | Search failed                                                                                                                                |
 
-An example of memory release is shown below. It is sufficient to free only the head pointer.
+The following is an example of memory release processing.
+Only the top-level pointer needs to be freed.
 
 ```C#
 SearchResult* result = null;
@@ -347,18 +389,18 @@ finally
 
 ### GetTotalVector
 
-Gets the number of registered vectors in the specified instance.
+Gets the number of vectors registered in the specified instance.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe double GetTotalVector(int instanceNo);
 ```
 
-| Argument Type | Argument Name | Meaning         |
+| Argument Type | Argument Name | Description     |
 | :------------ | :------------ | :-------------- |
 | int           | instanceNo    | Instance number |
 
-| Return Value | Meaning                      |
+| Return Value | Description                  |
 | :----------- | :--------------------------- |
 | -            | Number of registered vectors |
 
@@ -369,17 +411,17 @@ Gets the number of registered vectors in the specified instance.
 Writes the index information of the specified instance to the specified storage.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Save(int instanceNo, byte* utf8Text, int textLength);
 ```
 
-| Argument Type | Argument Name | Meaning                                             |
-| :------------ | :------------ | :-------------------------------------------------- |
-| int           | instanceNo    | Instance number                                     |
-| byte*         | utf8Text      | Path of the folder where the database will be saved |
-| int           | textLength    | String length of utf8Text                           |
+| Argument Type | Argument Name | Description                                        |
+| :------------ | :------------ | :------------------------------------------------- |
+| int           | instanceNo    | Instance number                                    |
+| byte*         | utf8Text      | Path name of the folder where the DB will be saved |
+| int           | textLength    | String length of `utf8Text`                        |
 
-| Return Value | Meaning         |
+| Return Value | Description     |
 | :----------- | :-------------- |
 | true         | Write succeeded |
 | false        | Write failed    |
@@ -388,23 +430,23 @@ Writes the index information of the specified instance to the specified storage.
 
 ### SaveWithCount
 
-Writes the index information of the specified instance to the specified storage together with count information.
+Writes the index information of the specified instance to the specified storage with count information.
 
-**Warning**: Use of this function is not recommended. Even when using this function, the database is not saved in a completely separated form.
+**Note**: Use of this function is not recommended. Even when this function is used, the DB is not saved in a completely separated form.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool SaveWithCount(int instanceNo, byte* utf8Text, int textLength, int count);
 ```
 
-| Argument Type | Argument Name | Meaning                                             |
-| :------------ | :------------ | :-------------------------------------------------- |
-| int           | instanceNo    | Instance number                                     |
-| byte*         | utf8Text      | Path of the folder where the database will be saved |
-| int           | textLength    | String length of utf8Text                           |
-| int           | count         | Count information (used when generating file names) |
+| Argument Type | Argument Name | Description                                        |
+| :------------ | :------------ | :------------------------------------------------- |
+| int           | instanceNo    | Instance number                                    |
+| byte*         | utf8Text      | Path name of the folder where the DB will be saved |
+| int           | textLength    | String length of `utf8Text`                        |
+| int           | count         | Count information used when generating file names  |
 
-| Return Value | Meaning         |
+| Return Value | Description     |
 | :----------- | :-------------- |
 | true         | Write succeeded |
 | false        | Write failed    |
@@ -413,23 +455,24 @@ Writes the index information of the specified instance to the specified storage 
 
 ### SimpleClustering
 
-Gets clustering information from the specified instance at the time of the call.
+Gets cluster information from the specified instance at the time of the call.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* SimpleClustering(int instanceNo);
 ```
 
-| Argument Type | Argument Name | Meaning         |
+| Argument Type | Argument Name | Description     |
 | :------------ | :------------ | :-------------- |
 | int           | instanceNo    | Instance number |
 
-| Return Value | Meaning                                                                                |
-| :----------- | :------------------------------------------------------------------------------------- |
-| ! null       | Cluster information (check the SearchResult structure) **Must be freed by the caller** |
-| null         | Failed to obtain cluster information                                                   |
+| Return Value | Description                                                                                             |
+| :----------- | :------------------------------------------------------------------------------------------------------ |
+| not null     | Cluster information. Check the `SearchResult` structure. **The caller must free the returned pointer.** |
+| null         | Failed to get cluster information                                                                       |
 
-An example of memory release is shown below. It is sufficient to free only the head pointer.
+The following is an example of memory release processing.
+Only the top-level pointer needs to be freed.
 
 ```C#
 SearchResult* result = null;
@@ -455,28 +498,29 @@ finally
 
 ### Predict
 
-Infers where the specified vector belongs in the specified instance.
-This inference engine also returns the evidence for the inference, making it possible to verify the validity of the decision.
+Performs inference on which category the specified vector belongs to in the specified instance.
+This inference engine also returns evidence information for the inference. This makes it possible to verify the validity of the judgment.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
 ```
 
-| Argument Type | Argument Name   | Meaning                                                                                                                                                                                                           |
-| :------------ | :-------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| int           | instanceNo      | Instance number                                                                                                                                                                                                   |
-| float*        | vec             | Vectors to predict (length vectors, each with the size specified at initialization)                                                                                                                              |
-| int           | length          | Number of vectors to register                                                                                                                                                                                     |
-| int           | kValue          | Number of similar data items used for voting                                                                                                                                                                      |
-| double        | detectThreshold | Threshold for accepting the voting result. The item whose evaluation value is the highest and exceeds the threshold is used as the inference result. If no item exceeds the threshold, it is judged as "Unknown". |
+| Argument Type | Argument Name   | Description                                                                                                                                                                                                    |
+| :------------ | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo      | Instance number                                                                                                                                                                                                |
+| float*        | vec             | Vectors to infer. The number of vectors is `length`, and each vector has the size specified at initialization                                                                                                  |
+| int           | length          | Number of vectors to infer                                                                                                                                                                                     |
+| int           | kValue          | Number of similar data items used for voting                                                                                                                                                                   |
+| double        | detectThreshold | Threshold for accepting the voting result. The item that exceeds the threshold and has the highest evaluation value becomes the inference result. If no data exceeds the threshold, it is judged as “unknown.” |
 
-| Return Value | Meaning                                                                                   |
-| :----------- | :---------------------------------------------------------------------------------------- |
-| ! null       | Inference information (check the PredictResult structure) **Must be freed by the caller** |
-| null         | Inference failed (including Unknown judgment)                                             |
+| Return Value | Description                                                                                                                                                                                                                                                               |
+| :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| not null     | Inference information. Check the `PredictResult` structure.<br>A `PredictResult` is also returned for an unknown judgment. Check `PredictedLabel` for details of the unknown judgment.<br>**The returned pointer must be freed by the caller using `NativeMemory.Free`.** |
+| null         | Inference processing failed                                                                                                                                                                                                                                               |
 
-An example of memory release is shown below. It is sufficient to free only the head pointer.
+The following is an example of memory release processing.
+Only the top-level pointer needs to be freed.
 
 ```C#
 PredictResult* result = null;
@@ -502,23 +546,83 @@ finally
 
 ### IsNeedRefine
 
-Queries whether the specified vector is subject to optimization in the specified instance.
+Queries whether the specified vector is subject to optimization for the specified instance.
 
 ```C#
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 ```
 
-| Argument Type | Argument Name | Meaning                                                                              |
-| :------------ | :------------ | :----------------------------------------------------------------------------------- |
-| int           | instanceNo    | Instance number                                                                      |
-| float*        | vec           | Vectors to check (length vectors, each with the size specified at initialization) |
-| int           | length        | Number of vectors to register                                                        |
-| int           | searchMax     | Search width used when finding the registration destination (5 recommended)          |
-| int           | mainId        | Main ID of the vectors to register                                                   |
-| int           | subId         | Sub ID of the vectors to register                                                    |
+| Argument Type | Argument Name | Description                                                                                                   |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------------ |
+| int           | instanceNo    | Instance number                                                                                               |
+| float*        | vec           | Vectors to check. The number of vectors is `length`, and each vector has the size specified at initialization |
+| int           | length        | Number of vectors to check                                                                                    |
+| int           | searchMax     | Search width used for the check. `5` is recommended                                                           |
+| int           | mainId        | Main ID of the vectors to check                                                                               |
+| int           | subId         | Sub ID of the vectors to check                                                                                |
 
-| Return Value | Meaning                           |
-| :----------- | :-------------------------------- |
-| true         | It is subject to optimization     |
-| false        | It is not subject to optimization |
+| Return Value | Description                 |
+| :----------- | :-------------------------- |
+| true         | Subject to optimization     |
+| false        | Not subject to optimization |
+
+---
+
+### GetStatusDetail
+
+Gets detailed execution result information.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe StatusDetailEnum GetStatusDetail();
+```
+
+| Return Value              | Description                          |
+| :------------------------ | :----------------------------------- |
+| Success = 0               | Completed successfully               |
+| ErrorBadInstanceNo = -1   | Invalid instance number              |
+| ErrorUtf8TextIsNull = -2  | Null was specified as the UTF-8 text |
+| ErrorBadTextLength = -3   | Invalid text length                  |
+| ErrorNotInitialized = -4  | Initialization has not been executed |
+| ErrorFileNotFound = -5    | File, such as the DB, does not exist |
+| ErrorIOException = -6     | I/O error                            |
+| ErrorOtherException = -99 | Other error                          |
+
+---
+
+### RefineAll
+
+Executes Refine in batch.
+Instead of specifying individual vectors, this function executes Refine on the entire DB.
+The number of Refine executions is specified by the argument. If the count is `-1`, Refine is repeated until it is no longer necessary.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern bool RefineAll(int instanceNo, int limit);
+```
+
+| Argument Type | Argument Name | Description                                                                                                                          |
+| :------------ | :------------ | :----------------------------------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo    | Instance number                                                                                                                      |
+| int           | limit         | Upper limit of the number of Refine executions. If `-1`, Refine is repeated until it is no longer necessary.<br>`-1` is recommended. |
+
+| Return Value | Description            |
+| :----------- | :--------------------- |
+| true         | Completed successfully |
+| false        | Ended with an error    |
+
+---
+
+### SetDebugMode
+
+Sets the debug mode.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void SetDebugMode(int mode);
+```
+
+| Argument Type | Argument Name | Description                                                                                              |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
+| int           | mode          | Debug mode<br>None = 0 : Do not output<br>Console = 1 : Output to Console<br>Debug = 2 : Output to Debug |

@@ -30,4 +30,8 @@
   <Project Path="RekNNUtility/RekNNUtility.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="RekNN_MNIST_Sample/RekNN_MNIST_Sample.csproj" Id="95d32f23-b606-44b0-b826-2a1196ccb1ce">
+    <Platform Project="x64" />
+    <Deploy />
+  </Project>
 </Solution>

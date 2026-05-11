@@ -10,7 +10,7 @@
   "DatabasePath": "C:\\Users\\tokad\\Documents\\FuutaSystemService\\RekNNCIFAR10",
   "SimilarityThreshold": 0.9,
   "SearchMaxNumForAddVector": 5,
-  "MaxThread": 20,
+  "MaxThread": 12,
   "KValues": [
     1,
     3,
@@ -58,5 +58,6 @@
   ],
   "RefineThresholds": [
     null
-  ]
+  ],
+  "Refine": [ true, false ]
 }

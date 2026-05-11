@@ -22,7 +22,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading.Tasks;
 
-namespace RekNNMNIST
+namespace RekNN_MNIST_Sample
 {
     [JsonSourceGenerationOptions(WriteIndented = true)]
     [JsonSerializable(typeof(Settings))]
@@ -55,45 +55,5 @@ namespace RekNNMNIST
         /// 追加時の候補数
         /// </summary>
         public int SearchMaxNumForAddVector { get; set; } = 5;
-
-        /// <summary>
-        /// 最大スレッド数(評価用)
-        /// </summary>
-        public int MaxThread { get; set; } = 20;
-
-        /// <summary>
-        /// k値
-        /// </summary>
-        public int[] KValues { get; set; } = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-
-        /// <summary>
-        /// 正答判定閾値
-        /// </summary>
-        public double[] DetectThresholds { get; set; } = new double[] { 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.62, 0.64, 0.66, 0.68, 0.7, 0.72, 0.74, 0.76, 0.78, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96 };
-
-        /// <summary>
-        /// 評価対象ラベル
-        /// </summary>
-        public int[] AllLabels { get; set; } = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-
-        /// <summary>
-        /// 除外対象ラベル
-        /// </summary>
-        public int[] DropLabels { get; set; } = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 99 };
-
-        /// <summary>
-        /// ベクトル追加時の一致判定閾値
-        /// </summary>
-        public double[] AddVectorThresholds { get; set; } = new double[] { 0.9, 0.92, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99 };
-
-        /// <summary>
-        /// Refine用パラメタ
-        /// </summary>
-        public double?[] RefineThresholds { get; set; } = new double?[] { null, 0.01 };
-
-        /// <summary>
-        /// Refine用パラメタ
-        /// </summary>
-        public bool[] Refine { get; set; } = new bool[] { false, true };
     }
 }

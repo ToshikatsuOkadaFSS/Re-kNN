@@ -19,6 +19,32 @@ namespace RekNNUtility
         CIFAR10 = 3,
     }
 
+    public enum StatusDetailEnum
+    {
+        Success = 0,
+
+        ErrorBadInstanceNo = -1,
+
+        ErrorUtf8TextIsNull = -2,
+
+        ErrorBadTextLength = -3,
+
+        ErrorNotInitialized = -4,
+
+        ErrorFileNotFound = -5,
+
+        ErrorIOException = -6,
+
+        ErrorOtherException = -99,
+    }
+
+    public enum DebugModeEnum
+    {
+        None = 0,
+        Console = 1,
+        Debug = 2,
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     public unsafe struct SearchResult
     {
@@ -113,42 +139,50 @@ namespace RekNNUtility
 
     public class RekNNUtility
     {
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern bool Initialize(ModeEnum mode, int instanceNum);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Load(int instanceNo, byte* utf8Text, int textLength);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern int Delete(int instanceNo, int mainId, int subId);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe double GetTotalVector(int instanceNo);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Save(int instanceNo, byte* utf8Text, int textLength);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool SaveWithCount(int instanceNo, byte* utf8Text, int textLength, int count);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* SimpleClustering(int instanceNo);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe StatusDetailEnum GetStatusDetail();
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern bool RefineAll(int instanceNo, int limit);
+
+        [DllImport("DLL\\FuutaSystemSvcVectorLibrary")]
+        private static extern void SetDebugMode(int mode);
 
 
         /// <summary>
@@ -194,9 +228,58 @@ namespace RekNNUtility
 
         public int dimension { get; }
 
+        /// <summary>
+        /// ログを表示する関数
+        /// </summary>
+        public static Action<string?> DisplayMessage { get; set; } = Console.WriteLine;
+
+        /// <summary>
+        /// DLLのリゾルバー。DLLが見つからない場合に呼び出される。ここでDLLの場所を指定する。
+        /// </summary>
+        /// <param name="libraryName"></param>
+        /// <param name="assembly"></param>
+        /// <param name="searchPath"></param>
+        /// <returns></returns>
+        private static IntPtr ResolveNativeLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            if (libraryName == "FuutaSystemSvcVectorLibrary")
+            {
+                // 実行ファイルの場所を取得
+                string baseDir = AppContext.BaseDirectory;
+
+                // OSに応じた拡張子と接頭辞を判定
+                string libFileName = libraryName;
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    libFileName = $"{libraryName}.dll";
+                    //DisplayMessage($"Win:Lib:{libFileName}");
+                }
+                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    libFileName = $"{libraryName}.so";
+                    //DisplayMessage($"Linux:Lib:{libFileName}");
+                }
+
+                // 「実行ファイル/DLL/ライブラリ名」のパスを作成
+                string libPath = Path.Combine(baseDir, "DLL", libFileName);
+
+                // ライブラリをロード
+                if (NativeLibrary.TryLoad(libPath, out IntPtr handle))
+                {
+                    return handle;
+                }
+            }
+
+            // 見つからない場合は IntPtr.Zero を返すと、標準の探索ルールにフォールバックされる
+            return IntPtr.Zero;
+        }
 
         public RekNNUtility(ModeEnum mode, int instanceNum)
         {
+            // リゾルバーを登録する
+            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), ResolveNativeLibrary);
+
+
             Initialize(mode, instanceNum);
 
             this.CurrentMode = mode;
@@ -227,7 +310,16 @@ namespace RekNNUtility
             {
                 fixed (byte* pText = utf8Bytes)
                 {
-                    Load(instanceNo, pText, utf8Bytes.Length);
+                    if (Load(instanceNo, pText, utf8Bytes.Length))
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        DisplayMessage($"Load:true:{status.ToString()}");
+                    }
+                    else
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        DisplayMessage($"Load:falase:{status.ToString()}");
+                    }
                 }
             }
 
@@ -235,30 +327,33 @@ namespace RekNNUtility
 
 
 
-        public void Test_by_Pattern(int searchMax, string logPath, int maxThread, IEnumerable<int> kValues, IEnumerable<double> detectThresholds, IEnumerable<int> allLabels, IEnumerable<int> dropLabels, IEnumerable<double> addVectorThresholds, IEnumerable<double?> refineThresholds)
+        public void Test_by_Pattern(int searchMax, string logPath, int maxThread, IEnumerable<int> kValues, IEnumerable<double> detectThresholds, IEnumerable<int> allLabels, IEnumerable<int> dropLabels, IEnumerable<double> addVectorThresholds, IEnumerable<double?> refineThresholds, bool[] refine)
         {
             //FuutaSystemSvcVectorLibrary.CommonValues.Initialize(RekNNMNIST, )
 
             // data は threshold, dropLabel, targetLabels, allLabels
-            List<(double, int, IEnumerable<int>, IEnumerable<int>, double?)> testParams = new();
+            List<(double, int, IEnumerable<int>, IEnumerable<int>, double?, bool)> testParams = new();
 
             // パラメタ生成
-            foreach(double? refineThreshold in refineThresholds)
+            foreach (bool refineFlag in refine)
             {
-                foreach (double threshold in addVectorThresholds)
+                foreach (double? refineThreshold in refineThresholds)
                 {
-                    foreach (byte dropLabel in dropLabels)
+                    foreach (double threshold in addVectorThresholds)
                     {
-                        List<int> targetLabels = new();
-                        foreach (int chk in allLabels)
+                        foreach (byte dropLabel in dropLabels)
                         {
-                            if (chk != dropLabel)
+                            List<int> targetLabels = new();
+                            foreach (int chk in allLabels)
                             {
-                                targetLabels.Add(chk);
+                                if (chk != dropLabel)
+                                {
+                                    targetLabels.Add(chk);
+                                }
                             }
-                        }
 
-                        testParams.Add((threshold, dropLabel, targetLabels, allLabels, refineThreshold));
+                            testParams.Add((threshold, dropLabel, targetLabels, allLabels, refineThreshold, refineFlag));
+                        }
                     }
                 }
             }
@@ -274,35 +369,35 @@ namespace RekNNUtility
 
             Parallel.For(0, testParams.Count, (modelNo) =>
             {
-                (double, int, IEnumerable<int>, IEnumerable<int>, double?) arg = testParams[modelNo];
+                (double, int, IEnumerable<int>, IEnumerable<int>, double?, bool) arg = testParams[modelNo];
 
-                string logFileName = System.IO.Path.Combine(logPath, $"result-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}.csv");
+                string logFileName = System.IO.Path.Combine(logPath, $"result-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}-{arg.Item6}.csv");
                 FileInfo finfo = new(logFileName);
                 using StreamWriter writer = new(finfo.Open(FileMode.Create, FileAccess.Write, FileShare.Read));
 
-                string logFileName2 = System.IO.Path.Combine(logPath, $"result2-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}.csv");
+                string logFileName2 = System.IO.Path.Combine(logPath, $"result2-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}-{arg.Item6}.csv");
                 FileInfo finfo2 = new(logFileName2);
                 using StreamWriter writer2 = new(finfo2.Open(FileMode.Create, FileAccess.Write, FileShare.Read));
 
-                string logFileName3 = System.IO.Path.Combine(logPath, $"result3-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}.csv");
+                string logFileName3 = System.IO.Path.Combine(logPath, $"result3-{arg.Item1.ToString("0.00")}-{arg.Item2}-{string.Join("-", arg.Item3.Select(a => a.ToString()))}-{arg.Item5?.ToString("0.00") ?? "none"}-{arg.Item6}.csv");
                 FileInfo finfo3 = new(logFileName3);
 
                 using StreamWriter writer3 = new(finfo3.Open(FileMode.Create, FileAccess.Write, FileShare.Read)); try
                 {
                     semaphore.WaitOne();
 
-                    writer2.WriteLine($"refine, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels, predictLabels, {string.Join(",", allLabels.Select(a => a.ToString()))}, Unknown");
-                    writer3.WriteLine($"refine, k, dbThreshold, detectThreshold, skipLabel, targetLabels, predictLabels, testLabel, testNo, voteLabel, voteNo, voteScore");
+                    writer2.WriteLine($"refine, refineflag, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels, predictLabels, {string.Join(",", allLabels.Select(a => a.ToString()))}, Unknown");
+                    writer3.WriteLine($"refine, refineflag, k, dbThreshold, detectThreshold, skipLabel, targetLabels, predictLabels, testLabel, testNo, voteLabel, voteNo, voteScore");
 
                     TestSub(
-                        modelNo, writer, writer2, writer3, arg.Item2, arg.Item3, arg.Item4, searchMax, arg.Item1, arg.Item5,
+                        modelNo, writer, writer2, writer3, arg.Item2, arg.Item3, arg.Item4, searchMax, arg.Item1, arg.Item5, arg.Item6,
                         kValues, detectThresholds);
                 }
                 catch (Exception err)
                 {
-                    Console.WriteLine($"Error: {err.ToString()}");
-                    Console.WriteLine(err.Message);
-                    Console.WriteLine(err.StackTrace);
+                    DisplayMessage($"Error: {err.ToString()}");
+                    DisplayMessage(err.Message);
+                    DisplayMessage(err.StackTrace);
 
                     writer.WriteLine($"Error: {err.ToString()}");
                     writer.WriteLine(err.Message);
@@ -339,6 +434,7 @@ namespace RekNNUtility
             int searchMax, 
             double addVectorThreshold, 
             double? refineThreshold,
+            bool refineFlag,
             IEnumerable<int> kValues,
             IEnumerable<double> detectThresholds)
         {
@@ -377,6 +473,11 @@ namespace RekNNUtility
                 RefineDatabase(modelNo, searchMax, targetLabels, addVectorThreshold, refineThreshold.Value);
             }
 
+            if (refineFlag)
+            {
+                RefineAll(modelNo, searchMax);
+            }
+
             // 評価
             foreach (int kValue in kValues)
             {
@@ -396,20 +497,20 @@ namespace RekNNUtility
                     int labelErrorCount = 0;
                     int unknownCount = 0;
 
-                    Console.WriteLine($"refine, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
-                    writer.WriteLine($"refine, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
+                    DisplayMessage($"refine, refineflag, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
+                    writer.WriteLine($"refine, refineflag, k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
 
-                    Console.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
-                    writer.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
+                    DisplayMessage($"{refineThreshold?.ToString("0.00") ?? "none"}. {refineFlag}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
+                    writer.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"}. {refineFlag}, {kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
 
-                    string line2 = $"{refineThreshold?.ToString("0.00") ?? "none"},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray());
+                    string line2 = $"{refineThreshold?.ToString("0.00") ?? "none"},{refineFlag},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray());
 
-                    Console.WriteLine("label," + string.Join(",", allLabels.Select(a => a.ToString())) + ",unknown");
+                    DisplayMessage("label," + string.Join(",", allLabels.Select(a => a.ToString())) + ",unknown");
                     writer.WriteLine("label," + string.Join(",", allLabels.Select(a => a.ToString())) + ",unknown");
 
                     foreach ((int? predictedLabel, int chklabel, int chkpos, int mainId, int subId, double score) in reslt.Item3)
                     {
-                        writer3.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold.ToString("0.00")}, {skipLabel}, {string.Join("-", targetLabels.Select(a => a.ToString()))}, {predictedLabel ?? -1}, {chklabel}, {chkpos}, {mainId}, {subId}, {score.ToString("0.0000")}");
+                        writer3.WriteLine($"{refineThreshold?.ToString("0.00") ?? "none"},{refineFlag},{kValue},{addVectorThreshold.ToString("0.00")}, {detectThreshold.ToString("0.00")}, {skipLabel}, {string.Join("-", targetLabels.Select(a => a.ToString()))}, {predictedLabel ?? -1}, {chklabel}, {chkpos}, {mainId}, {subId}, {score.ToString("0.0000")}");
                     }
 
                     foreach (byte label in allLabels)
@@ -445,7 +546,7 @@ namespace RekNNUtility
                         }
                         if (evaluateReslt[label].ContainsKey(-1))
                         {
-                            Console.WriteLine($" : {evaluateReslt[label][-1]}");
+                            DisplayMessage($" : {evaluateReslt[label][-1]}");
                             line += $",{evaluateReslt[label][-1]}";
                             if (targetLabels.Contains(label))
                             {
@@ -454,7 +555,7 @@ namespace RekNNUtility
                         }
                         else
                         {
-                            Console.WriteLine($" : {0}");
+                            DisplayMessage($" : {0}");
                             line += $",{0}";
                         }
 
@@ -462,36 +563,36 @@ namespace RekNNUtility
                         writer2.WriteLine(line2 + "," + line);
                     }
 
-                    Console.WriteLine($"Accuracy, {(double)correct / (GetTestNum())}, {correct} / {GetTestNum()}");
+                    DisplayMessage($"Accuracy, {(double)correct / (GetTestNum())}, {correct} / {GetTestNum()}");
                     writer.WriteLine($"Accuracy, {(double)correct / (GetTestNum())}, {correct} / {GetTestNum()}");
 
-                    Console.WriteLine($"Accuracy2, {(double)correct / (count2)}, {correct} / {count2}");
+                    DisplayMessage($"Accuracy2, {(double)correct / (count2)}, {correct} / {count2}");
                     writer.WriteLine($"Accuracy2, {(double)correct / (count2)}, {correct} / {count2}");
 
-                    Console.WriteLine($"Label Error({string.Join("-", targetLabels.Select(a => a.ToString()))}), {labelErrorCount}");
+                    DisplayMessage($"Label Error({string.Join("-", targetLabels.Select(a => a.ToString()))}), {labelErrorCount}");
                     writer.WriteLine($"Label Error({string.Join("-", targetLabels.Select(a => a.ToString()))}), {labelErrorCount}");
 
-                    Console.WriteLine($"Unknown Data Count ({string.Join("-", targetLabels.Select(a => a.ToString()))}), {unknownCount}");
+                    DisplayMessage($"Unknown Data Count ({string.Join("-", targetLabels.Select(a => a.ToString()))}), {unknownCount}");
                     writer.WriteLine($"Unknown Data Count ({string.Join("-", targetLabels.Select(a => a.ToString()))}), {unknownCount}");
 
                     if ( allLabels.Contains(skipLabel))
                     {
                         // skipLabel が評価対象に含まれている場合は、skipLabel の正解率も出力する
-                        Console.WriteLine($"Error({skipLabel}), ErrorCount({skipLabel}), Total({skipLabel})");
+                        DisplayMessage($"Error({skipLabel}), ErrorCount({skipLabel}), Total({skipLabel})");
                         writer.WriteLine($"Error({skipLabel}), ErrorCount({skipLabel}), Total({skipLabel})");
                         if (evaluateReslt[skipLabel].ContainsKey(-1))
                         {
-                            Console.WriteLine($"{(double)evaluateReslt[skipLabel][-1] / evaluateReslt[skipLabel].Values.Sum()}, {evaluateReslt[skipLabel][-1]}, {evaluateReslt[skipLabel].Values.Sum()}");
+                            DisplayMessage($"{(double)evaluateReslt[skipLabel][-1] / evaluateReslt[skipLabel].Values.Sum()}, {evaluateReslt[skipLabel][-1]}, {evaluateReslt[skipLabel].Values.Sum()}");
                             writer.WriteLine($"{(double)evaluateReslt[skipLabel][-1] / evaluateReslt[skipLabel].Values.Sum()}, {evaluateReslt[skipLabel][-1]}, {evaluateReslt[skipLabel].Values.Sum()}");
                         }
                         else
                         {
-                            Console.WriteLine($"{(double)0 / evaluateReslt[skipLabel].Values.Sum()}, {0}, {evaluateReslt[skipLabel].Values.Sum()}");
+                            DisplayMessage($"{(double)0 / evaluateReslt[skipLabel].Values.Sum()}, {0}, {evaluateReslt[skipLabel].Values.Sum()}");
                             writer.WriteLine($"{(double)0 / evaluateReslt[skipLabel].Values.Sum()}, {0}, {evaluateReslt[skipLabel].Values.Sum()}");
                         }
                     }
 
-                    Console.WriteLine("");
+                    DisplayMessage("");
                     writer.WriteLine("");
                     writer.Flush();
                     writer2.Flush();
@@ -544,7 +645,7 @@ namespace RekNNUtility
 
                 if (DateTime.Now > nextTime)
                 {
-                    Console.WriteLine($"Learned {i + 1} / {GetTrainNum()} images");
+                    DisplayMessage($"Learned {i + 1} / {GetTrainNum()} images");
                     nextTime = DateTime.Now.AddSeconds(10);
                 }
             }
@@ -579,7 +680,7 @@ namespace RekNNUtility
             {
                 int count = 0;
 
-                Console.WriteLine($"Refine Try Count : {tryCount}");
+                DisplayMessage($"Refine Try Count : {tryCount}");
 
                 DateTime nextTime = DateTime.Now.AddSeconds(1);
 
@@ -603,7 +704,7 @@ namespace RekNNUtility
                             // 再学習した
                             if (DateTime.Now > nextTime)
                             {
-                                Console.WriteLine($"Refined {count} images in this try({tryCount})");
+                                DisplayMessage($"Refined {count} images in this try({tryCount})");
                                 nextTime = DateTime.Now.AddSeconds(10);
                             }
 
@@ -629,7 +730,7 @@ namespace RekNNUtility
                 tryCount += 1;
             }
 
-            Console.WriteLine($"Refine Finished. Total {tryCount} trys.");
+            DisplayMessage($"Refine Finished. Total {tryCount} trys.");
         }
 
 
@@ -702,7 +803,7 @@ namespace RekNNUtility
             {
                 if (i % 500 == 0)
                 {
-                    Console.WriteLine($"Evaluated {i} / {GetTestNum()} images");
+                    DisplayMessage($"Evaluated {i} / {GetTestNum()} images");
                 }
 
                 float[][] vector = GetTestVector(i);
@@ -718,7 +819,7 @@ namespace RekNNUtility
 
                     if (result == null)
                     {
-                        Console.WriteLine($"Prediction failed. pos={i}, label={GetTestLabel(i)}");
+                        DisplayMessage($"Prediction failed. pos={i}, label={GetTestLabel(i)}");
                         continue;
                     }
 
@@ -794,10 +895,12 @@ namespace RekNNUtility
 
                 if (DateTime.Now > nextTime)
                 {
-                    Console.WriteLine($"Learned {i + 1} / {GetTrainNum()} images");
+                    DisplayMessage($"Learned {i + 1} / {GetTrainNum()} images");
                     nextTime = DateTime.Now.AddSeconds(10);
                 }
             }
+
+            DisplayMessage($"Finished!");
         }
 
         public void LearnAllLabelsForCurrentModel(int searchMax, double addVectorThreshold)
@@ -850,12 +953,12 @@ namespace RekNNUtility
 
                 if (result == null)
                 {
-                    Console.WriteLine("Prediction failed");
+                    DisplayMessage("Prediction failed");
                     return;
                 }
 
-                Console.WriteLine($"Search Class : {GetTestLabel(pos)}");
-                Console.WriteLine($"Predicted Class : {result->PredictedLabel.ToString() ?? "unknown"}");
+                DisplayMessage($"Search Class : {GetTestLabel(pos)}");
+                DisplayMessage($"Predicted Class : {result->PredictedLabel.ToString() ?? "unknown"}");
 
                 List<ResultItemMain> sortedResult = new List<ResultItemMain>();
                 for (int i = 0; i < result->ScoreListMainNum; i++)
@@ -868,9 +971,9 @@ namespace RekNNUtility
                 sortedResult = sortedResult.OrderByDescending(x => x.Score).ToList();
                 for (int i = 0; i < sortedResult.Count; i++)
                 {
-                    Console.WriteLine($"No.{i + 1} : Class {sortedResult[i].MainId}, Score {sortedResult[i].Score}");
+                    DisplayMessage($"No.{i + 1} : Class {sortedResult[i].MainId}, Score {sortedResult[i].Score}");
                 }
-                Console.WriteLine($"Key Image(pos={pos}, label={GetTestLabel(pos)})");
+                DisplayMessage($"Key Image(pos={pos}, label={GetTestLabel(pos)})");
                 DisplayTestImage?.Invoke(pos);
 
                 List<ResultItemMainAndSub> sortedResult2 = new List<ResultItemMainAndSub>();
@@ -882,7 +985,7 @@ namespace RekNNUtility
                 }
                 ResultItemMainAndSub top = sortedResult2.OrderByDescending(x => x.Score).ToList().FirstOrDefault();
 
-                Console.WriteLine($"Predicted Image(pos ={top.SubId}, label={GetTrainLabel(top.SubId)}.{top.MainId}) : {top.Score.ToString("0.0000")}");
+                DisplayMessage($"Predicted Image(pos ={top.SubId}, label={GetTrainLabel(top.SubId)}.{top.MainId}) : {top.Score.ToString("0.0000")}");
                 DisplayTrainImage?.Invoke(top.SubId);
             }
             finally
@@ -961,12 +1064,12 @@ namespace RekNNUtility
 
                 if (result == null)
                 {
-                    Console.WriteLine("Prediction failed");
+                    DisplayMessage("Prediction failed");
                     return;
                 }
 
-                Console.WriteLine($"Search Class : {GetTestLabel(pos)}");
-                Console.WriteLine($"Predicted Class : {result->PredictedLabel.ToString() ?? "unknown"}");
+                DisplayMessage($"Search Class : {GetTestLabel(pos)}");
+                DisplayMessage($"Predicted Class : {result->PredictedLabel.ToString() ?? "unknown"}");
 
                 List<ResultItemMain> sortedResult = new List<ResultItemMain>();
                 for (int i = 0; i < result->ScoreListMainNum; i++)
@@ -978,9 +1081,9 @@ namespace RekNNUtility
 
                 for (int i = 0; i < sortedResult.Count; i++)
                 {
-                    Console.WriteLine($"No.{i + 1} : Class {sortedResult[i].MainId}, Score {sortedResult[i].Score}");
+                    DisplayMessage($"No.{i + 1} : Class {sortedResult[i].MainId}, Score {sortedResult[i].Score}");
                 }
-                Console.WriteLine($"Key Image(pos={pos}, label={GetTestLabel(pos)})");
+                DisplayMessage($"Key Image(pos={pos}, label={GetTestLabel(pos)})");
                 DisplayTestImage?.Invoke(pos);
 
                 List<ResultItemMainAndSub> sortedResult2 = new List<ResultItemMainAndSub>();
@@ -992,7 +1095,7 @@ namespace RekNNUtility
                 }
                 ResultItemMainAndSub top = sortedResult2.OrderByDescending(x => x.Score).ToList().FirstOrDefault();
 
-                Console.WriteLine($"Predicted Image(pos ={top.SubId}, label={GetTrainLabel(top.SubId)}.{top.MainId}) : {top.Score.ToString("0.0000")}");
+                DisplayMessage($"Predicted Image(pos ={top.SubId}, label={GetTrainLabel(top.SubId)}.{top.MainId}) : {top.Score.ToString("0.0000")}");
                 DisplayTrainImage?.Invoke(top.SubId);
             }
             finally
@@ -1054,7 +1157,7 @@ namespace RekNNUtility
             {
                 if (i % 500 == 0)
                 {
-                    Console.WriteLine($"Evaluated {i} / {GetTestNum()} images");
+                    DisplayMessage($"Evaluated {i} / {GetTestNum()} images");
                 }
 
                 float[][] vector = GetTestVector(i);
@@ -1070,7 +1173,7 @@ namespace RekNNUtility
 
                     if (result == null)
                     {
-                        Console.WriteLine($"Prediction failed. pos={i}, label={GetTestLabel(i)}");
+                        DisplayMessage($"Prediction failed. pos={i}, label={GetTestLabel(i)}");
                         continue;
                     }
                     evaluateReslt.TryAdd(GetTestLabel(i), new Dictionary<int, int>());
@@ -1125,7 +1228,7 @@ namespace RekNNUtility
                 }
                 if (evaluateReslt[label].ContainsKey(-1))
                 {
-                    Console.WriteLine($" : {evaluateReslt[label][-1]}");
+                    DisplayMessage($" : {evaluateReslt[label][-1]}");
                     if (targets.Contains(label))
                     {
                         unknownCount += evaluateReslt[label][-1];
@@ -1133,17 +1236,17 @@ namespace RekNNUtility
                 }
                 else
                 {
-                    Console.WriteLine($" : {0}");
+                    DisplayMessage($" : {0}");
                 }
             }
 
-            Console.WriteLine($"Accuracy : {(double)correct / (GetTestNum())} : {correct} / {GetTestNum()}");
-            Console.WriteLine($"Accuracy2 : {(double)correct / (count2)} : {correct} / {count2}");
-            Console.WriteLine($"Label Error(0-8) : {labelErrorCount}");
-            Console.WriteLine($"Unknown Data Count (0-8) : {unknownCount}");
+            DisplayMessage($"Accuracy : {(double)correct / (GetTestNum())} : {correct} / {GetTestNum()}");
+            DisplayMessage($"Accuracy2 : {(double)correct / (count2)} : {correct} / {count2}");
+            DisplayMessage($"Label Error(0-8) : {labelErrorCount}");
+            DisplayMessage($"Unknown Data Count (0-8) : {unknownCount}");
             if (evaluateReslt.ContainsKey(9) && evaluateReslt[9].ContainsKey(-1))
             {
-                Console.WriteLine($"Error : {(double)evaluateReslt[9][-1] / evaluateReslt[9].Values.Sum()} : {evaluateReslt[9][-1]}/{evaluateReslt[9].Values.Sum()}");
+                DisplayMessage($"Error : {(double)evaluateReslt[9][-1] / evaluateReslt[9].Values.Sum()} : {evaluateReslt[9][-1]}/{evaluateReslt[9].Values.Sum()}");
             }
         }
 
@@ -1197,12 +1300,12 @@ namespace RekNNUtility
             int labelErrorCount = 0;
             int unknownCount = 0;
 
-            Console.WriteLine($"k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
-            Console.WriteLine($"{kValue},{detectThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
+            DisplayMessage($"k, dbThreshold, detectThreshold, totalTime, predictTime, skipLabel, targetLabels");
+            DisplayMessage($"{kValue},{detectThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray()));
 
             string line2 = $"{kValue},{detectThreshold.ToString("0.00")}, {detectThreshold},{timeSec.ToString("0.00")},{(timeSec / count2).ToString("0.00")},{skipLabel}," + string.Join("-", targetLabels.Select(a => a.ToString()).ToArray());
 
-            Console.WriteLine("label," + string.Join(",", allLabels.Select(a => a.ToString())) + ",unknown");
+            DisplayMessage("label," + string.Join(",", allLabels.Select(a => a.ToString())) + ",unknown");
 
             foreach (byte label in allLabels)
             {
@@ -1237,7 +1340,7 @@ namespace RekNNUtility
                 }
                 if (evaluateReslt[label].ContainsKey(-1))
                 {
-                    Console.WriteLine($" : {evaluateReslt[label][-1]}");
+                    DisplayMessage($" : {evaluateReslt[label][-1]}");
                     line += $",{evaluateReslt[label][-1]}";
                     if (targetLabels.Contains(label))
                     {
@@ -1246,26 +1349,26 @@ namespace RekNNUtility
                 }
                 else
                 {
-                    Console.WriteLine($" : {0}");
+                    DisplayMessage($" : {0}");
                     line += $",{0}";
                 }
             }
 
-            Console.WriteLine($"Accuracy, {(double)correct / (GetTestNum())} : {correct} / {GetTestNum()}");
+            DisplayMessage($"Accuracy, {(double)correct / (GetTestNum())} : {correct} / {GetTestNum()}");
 
-            Console.WriteLine($"Accuracy2, {(double)correct / (count2)} : {correct} / {count2}");
+            DisplayMessage($"Accuracy2, {(double)correct / (count2)} : {correct} / {count2}");
 
-            Console.WriteLine($"Label Error({string.Join("-", targetLabels.Select(a => a.ToString()))}), {labelErrorCount}");
+            DisplayMessage($"Label Error({string.Join("-", targetLabels.Select(a => a.ToString()))}), {labelErrorCount}");
 
-            Console.WriteLine($"Unknown Data Count ({string.Join("-", targetLabels.Select(a => a.ToString()))}), {unknownCount}");
+            DisplayMessage($"Unknown Data Count ({string.Join("-", targetLabels.Select(a => a.ToString()))}), {unknownCount}");
 
             if (evaluateReslt.ContainsKey(skipLabel) && evaluateReslt[skipLabel].ContainsKey(-1))
             {
-                Console.WriteLine($"Error({skipLabel}), ErrorCount({skipLabel}), Total({skipLabel})");
-                Console.WriteLine($"{(double)evaluateReslt[skipLabel][-1] / evaluateReslt[skipLabel].Values.Sum()}, {evaluateReslt[skipLabel][-1]}, {evaluateReslt[skipLabel].Values.Sum()}");
+                DisplayMessage($"Error({skipLabel}), ErrorCount({skipLabel}), Total({skipLabel})");
+                DisplayMessage($"{(double)evaluateReslt[skipLabel][-1] / evaluateReslt[skipLabel].Values.Sum()}, {evaluateReslt[skipLabel][-1]}, {evaluateReslt[skipLabel].Values.Sum()}");
             }
 
-            Console.WriteLine("");
+            DisplayMessage("");
         }
 
 
@@ -1284,7 +1387,16 @@ namespace RekNNUtility
             {
                 fixed (byte* pText = utf8Bytes)
                 {
-                    Save(modelNo, pText, utf8Bytes.Length);
+                    if (Save(modelNo, pText, utf8Bytes.Length))
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        DisplayMessage($"Save:true:{status}");
+                    }
+                    else
+                    {
+                        StatusDetailEnum status = GetStatusDetail();
+                        DisplayMessage($"Save:falase:{status}");
+                    }
                 }
             }
 
@@ -1443,6 +1555,107 @@ namespace RekNNUtility
             }
 
             return ret;
+        }
+
+        public bool RefineDatabaseForCurrentModel(int limit)
+        {
+            return RefineDatabase(0, limit);
+        }
+
+
+
+
+        public bool RefineDatabase(int instanceNo, int limit)
+        {
+            return RekNNUtility.RefineAll(instanceNo, limit);
+        }
+
+
+        /// <summary>
+        /// 推論の実行
+        /// </summary>
+        /// <param name="modelNo"></param>
+        /// <param name="searchRange"></param>
+        /// <param name="predictThreshold"></param>
+        /// <param name="data"></param>
+        public unsafe ((int, double)?, List<ResultItemMainAndSub>) Predict(int modelNo, int searchRange, double predictThreshold, float[][] vector)
+        {
+            float* pVector = null;
+            PredictResult* result = null;
+
+            try
+            {
+                pVector = ConvertVector(vector);
+
+                result = Predict(modelNo, pVector, vector.GetLength(0), searchRange, predictThreshold);
+
+                if (result == null)
+                {
+                    DisplayMessage("Prediction failed");
+                    return (null, new List<ResultItemMainAndSub>());
+                }
+
+                DisplayMessage($"Predicted Class : {result->PredictedLabel.ToString() ?? "unknown"}");
+
+                List<ResultItemMain> sortedResult = new List<ResultItemMain>();
+                for (int i = 0; i < result->ScoreListMainNum; i++)
+                {
+                    ResultItemMain add = new ResultItemMain();
+                    add = result->ScoreListMain[i];
+                    sortedResult.Add(add);
+                }
+                sortedResult = sortedResult.OrderByDescending(x => x.Score).ToList();
+
+                List<ResultItemMainAndSub> sortedResult2 = new List<ResultItemMainAndSub>();
+                for (int i = 0; i < result->ScoreListMainAndSubNum; i++)
+                {
+                    ResultItemMainAndSub add = new ResultItemMainAndSub();
+                    add = result->ScoreListMainAndSub[i];
+                    sortedResult2.Add(add);
+                }
+
+                Dictionary<int, double> classScore = new Dictionary<int, double>();
+                foreach (ResultItemMainAndSub elm in sortedResult2)
+                {
+                    classScore.TryAdd(elm.MainId, 0);
+                    classScore[elm.MainId] += elm.Score;
+                }
+
+                (int, double)? pred = null;
+                if ( classScore.Count> 0)
+                {
+                    KeyValuePair<int, double> max = classScore.OrderByDescending(x => x.Value).FirstOrDefault();
+                    if (max.Value >= predictThreshold)
+                    {
+                        pred = (max.Key, max.Value);
+                    }
+                }
+
+                DisplayMessage($"Predicted Image(label={pred?.Item1.ToString() ?? "Unknown"}) : Score = {pred?.Item2.ToString("0.0000") ?? "null"})");
+
+                return (pred, sortedResult2.OrderByDescending(x=>x.Score).ToList());
+            }
+            finally
+            {
+                if (pVector != null)
+                {
+                    NativeMemory.Free(pVector);
+                }
+                if (result != null)
+                {
+                    NativeMemory.Free(result);
+                }
+            }
+        }
+
+        /// <summary>
+        /// メッセージ表示モードの変更
+        /// </summary>
+        /// <param name="mode"></param>
+        public void SetDebugMode(DebugModeEnum mode)
+        {
+            int m = (int)mode;
+            SetDebugMode(m);
         }
     }
 }

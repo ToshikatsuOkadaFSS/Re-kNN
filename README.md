@@ -7,7 +7,7 @@
 Re-kNN is an evaluation-oriented vector search and inference library that rethinks kNN within a modern vector search engine architecture, with a focus on deterministic geometry, dynamic updates, and explicit unknown detection.
 
 Unlike conventional approaches, it provides explicit and reproducible evidence for each result,
-making it suitable for evaluation in decision-making and audit-sensitive environments.
+making it suitable for technical evaluation in scenarios where decision traceability, reproducibility, and auditability are important.
 
 ## Important Notes
 
@@ -17,7 +17,7 @@ Its value should be assessed not only by raw search speed, but also by determini
 
 Please note:
 
-- The core Re-kNN DLL is **not open source** and is distributed under the **Re-kNN Evaluation License**.
+- The core Re-kNN binary library is **not open source** and is distributed under the **Re-kNN Evaluation License**.
 - Only the sample code in this repository is provided under the **Apache License 2.0**.
 - This release is intended for **technical evaluation, benchmarking, and prototyping**.
 - It is **not intended for production use** at this stage.
@@ -29,7 +29,7 @@ For commercial use, operational use, or collaboration, please contact the author
 
 ## Quick Links
 
-- **Evaluation License for Core DLL**: [`EULA-RekNN-Evaluation.md`](./EULA-RekNN-Evaluation.md)
+- **Evaluation License for Core Binary Library**: [`EULA-RekNN-Evaluation.md`](./EULA-RekNN-Evaluation.md)
 - **Japanese Reference Translation of EULA**: [`EULA-RekNN-Evaluation.ja.md`](./EULA-RekNN-Evaluation.ja.md)
 - **License for Sample Applications / Source Code**: [`LICENSE`](./LICENSE)
 
@@ -63,7 +63,7 @@ For detailed use cases and application ideas, please refer to:
 
 - Deterministic vector search
 - Explicit nearest neighbor reasoning
-- Large-scale support (evaluated in selected scenarios; results vary by domain and dataset density)
+- Large-scale vector database support in selected evaluation scenarios; performance varies by domain, dataset density, hardware, and configuration
 - Unknown detection capability
 - Stable and reproducible outputs
 
@@ -82,7 +82,7 @@ These dimensions are provided as reference evaluation targets. For other dimensi
 
 This repository intentionally separates the licensing and distribution model by component:
 
-- **Core DLL**: distributed as a binary-only evaluation package under a proprietary evaluation license
+- **Core Binary Library**: distributed as a binary-only evaluation package under a proprietary evaluation license
 - **Sample applications and related source code**: provided separately under Apache License 2.0
 - **Documentation**: unless otherwise noted, follows the same licensing policy as the sample applications
 
@@ -90,8 +90,10 @@ Please review the applicable license before using each component.
 
 ## Distribution
 
-* **Format**: Provided as a DLL for .NET 8.
+* **Format**: Provided as a native binary library: DLL for Windows x64 and `.so` for Linux/Ubuntu x64.
 * **Verified Environment**: Windows 11 Professional
+* **Additional Package**: Linux/Ubuntu x64 `.so` is included for evaluation.
+* **Runtime / Integration**: Sample applications are provided for .NET 8.
 * **Customization**: For other dimensions, dataset formats, or specific architectural needs, please contact the author.
 
 ## Manifesto
@@ -116,7 +118,7 @@ At this stage, this library should be regarded as an **evaluation / preview rele
 
 This repository provides:
 
-* the evaluation DLL of the library
+* the evaluation binary library
 * CLI-based sample applications
 * source code for the sample applications
 * benchmark and evaluation utilities for selected datasets and use cases
@@ -175,9 +177,9 @@ We welcome constructive feedback from users who evaluate the library in real con
 
 The licensing of this repository is intentionally split by component.
 
-### Core DLL
+### Core Binary Library
 
-The core Re-kNN binary library (DLL) is distributed under a **proprietary evaluation license**.
+The core Re-kNN binary library is distributed under a **proprietary evaluation license**.
 
 This means:
 
@@ -193,8 +195,15 @@ Please see:
 
 CLI-based sample applications and related sample source code are provided under the **Apache License 2.0**.
 
+**Added in Version 1.1**
+
+A Windows (WinUI) sample application for handwritten digit recognition using MNIST has been added.
+The application demonstrates Re-kNN-based inference with visible evidence for each recognition result.
+
 Please see:  
-[`LICENSE`](./LICENSE)
+
+- [`LICENSE`](./LICENSE)
+- [MNIST_SAMPLE_APP](./docs/MNIST_SAMPLE_APP.md)
 
 ### Documentation
 
@@ -213,6 +222,7 @@ The following evaluations are currently available:
 * BERT (Large-Scale Text Vector Database / Wikipedia JP)
 * MNIST
 * CIFAR-10
+* Semantic Context Clustering / Similar Word Clustering
 
 For details, please refer to the following documents:
 
@@ -221,6 +231,7 @@ For details, please refer to the following documents:
 - [Evidence for CIFAR-10](./docs/EVIDENCE.CIFAR-10.md)
 - [Evidence for BERT](./docs/EVIDENCE.BERT.md)
 - [Evidence for MNIST Clustering](./docs/EVIDENCE.MNIST.Clustering.md)
+- [Semantic Context Clustering / Similar Word Clustering](./docs/SemanticContextClustering.md)
 
 Evaluation results will be updated incrementally over time.
 
@@ -242,9 +253,17 @@ PredictResult* result = Predict(0, vec, length, kValue, 0.7);
 Delete(0, mainId, subId);
 
 // 5. Rebuild / refine if needed
-Refine(0, vec, length, mainId, subId, 5, 0.9);
+RefineAll(0, -1);
 ```
 
 For API details, please refer to the following file:
 
 [API.md](./docs/API.md)
+
+## Release Notes
+
+For details, please refer to the following file.
+
+[ReleaseNotes.md](./docs/ReleaseNotes.md)
+
+

@@ -19,6 +19,7 @@ using Microsoft.ML.OnnxRuntime;
 using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Security.AccessControl;
+using RekNNBERT;
 
 const int BERT_VECTOR_SIZE = 768;
 
@@ -64,15 +65,17 @@ while (true)
     Console.WriteLine("5 ... Check Database");
     Console.WriteLine("6 ... Refine Database (limit : 10minutes) & Save");
     Console.WriteLine("7 ... Refine Database (all documents) & Save");
-    Console.WriteLine("8 ... Save (Current Model)");
-    Console.WriteLine("9 ... Exit");
+    Console.WriteLine("8 ... Refine Database (Specified File , no save");
+    Console.WriteLine("9 ... Save (Current Model)");
+    Console.WriteLine("10 ... Refine Database (BULK) & Save");
+    Console.WriteLine("99 ... Exit");
     Console.WriteLine($"Input Command No:");
 
     if (Console.ReadLine() is string cmd)
     {
         if (int.TryParse(cmd, out int v))
         {
-            if (v == 9)
+            if (v == 99)
             {
                 break;
             }
@@ -108,6 +111,36 @@ while (true)
                     break;
 
                 case 8:
+                    {
+                        Console.Write($"Input Refine FileName:");
+                        if (Console.ReadLine() is string fname)
+                        {
+                            if (File.Exists(fname))
+                            {
+                                if (RekNNBERT.CommonValues.Settings.TextFile2IdDictionary.ContainsKey(fname))
+                                {
+                                    RefineFile(utility, fname);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("File not registered in database");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("File not found");
+                            }
+                        }
+                    }
+                    break;
+
+                case 9:
+                    utility.Save(0, RekNNBERT.CommonValues.Settings.DatabasePath);
+                    RekNNBERT.CommonValues.SaveSettings();
+                    break;
+
+                case 10:
+                    utility.RefineDatabase(0, -1);
                     utility.Save(0, RekNNBERT.CommonValues.Settings.DatabasePath);
                     RekNNBERT.CommonValues.SaveSettings();
                     break;
@@ -302,6 +335,44 @@ void RefineDatabase(RekNNUtility.RekNNUtility utility, TimeSpan? limit)
     Console.WriteLine($"Vector : {beforeVectorNum} -> {afterVectorNum}");
 }
 
+void RefineFile(RekNNUtility.RekNNUtility utility, string fullPath)
+{
+    if (RekNNBERT.CommonValues.TextVectorizer == null)
+    {
+        Console.WriteLine("TextVectorizer is not initialized");
+        return;
+    }
+
+    if ( RekNNBERT.CommonValues.Settings.TextFile2IdDictionary.ContainsKey(fullPath) == false)
+    {
+        Console.WriteLine("File not registered in database");
+        return;
+    }
+
+    int id = RekNNBERT.CommonValues.Settings.TextFile2IdDictionary[fullPath];
+
+    List<string> lines = ReadFile(fullPath);
+
+    for (int i = 0; i < lines.Count; i++)
+    {
+        //Console.WriteLine($"Line {i}: {lines[i]}");
+
+        float[][] vector = RekNNBERT.CommonValues.TextVectorizer.GetVector(new string[] { lines[i] });
+
+        if (utility.RefineBERTDatabaseForCurrentModel(
+            vector,
+            RekNNBERT.CommonValues.Settings.SearchMaxNumForAddVector,
+            id, i,
+            RekNNBERT.CommonValues.Settings.SimilarityThreshold))
+        {
+            Console.WriteLine($"Refined : {id} : {i}/{lines.Count} : {vector.GetLength(0)} : {lines[i]}");
+        }
+    }
+
+    // 終わったら保存
+    utility.Save(0, RekNNBERT.CommonValues.Settings.DatabasePath);
+    RekNNBERT.CommonValues.SaveSettings();
+}
 
 void CheckDatabase(RekNNUtility.RekNNUtility utility)
 {
@@ -498,6 +569,15 @@ void ScanAndVectorizeTextAndUpdateDatabaseFolder(RekNNUtility.RekNNUtility utili
                 }
 
                 int step = 500;
+                if (RekNNBERT.CommonValues.Settings.TextFile2IdDictionary.Count > 10000)
+                {
+                    step = 1000;
+                    if (RekNNBERT.CommonValues.Settings.TextFile2IdDictionary.Count > 50000)
+                    {
+                        step = 2000;
+                    }
+                }
+
                 if (RekNNBERT.CommonValues.Settings.TextFile2IdDictionary.Count % step == 0)
                 {
                     utility.Save(0, RekNNBERT.CommonValues.Settings.DatabasePath);
