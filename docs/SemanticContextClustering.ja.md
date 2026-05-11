@@ -38,6 +38,9 @@ Refine 処理は、データ登録時に不適切な位置に配置された可�
 
 ### クラスタリング結果
 
+* crawl-300d-2M.vec (After registration): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRegistration.txt
+* crawl-300d-2M.vec (After Refine): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRefine.txt
+
 #### 統計情報
 
 | Step | Time | Clusters | Avg size | Median size | Max size | Standard Deviation | Singleton clusters | Singleton Ratio |
@@ -134,4 +137,5 @@ Singleton Ratio は 2.6% から 3.9% に増加したが、依然として低い�
 そのため、実用上は類義語・関連語候補の生成や、ドメイン辞書構築の初期候補として利用することが適切である。
 
 200万件の word vectors からなる大規模データでありながら、ピーク時のメモリ使用量（PeakWorkingSet64）を 7 GiB 未満に抑え、シングルスレッドでも現実的な時間でクラスタリングを完了できた点は、本手法（Re-kNN）の省リソース性の高さを示している。
+
 

@@ -38,6 +38,9 @@ Even if such placement differences are unlikely to cause major issues during inf
 
 ### Clustering Results
 
+* crawl-300d-2M.vec (After registration): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRegistration.txt
+* crawl-300d-2M.vec (After Refine): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRefine.txt
+
 #### Statistics
 
 | Step | Time | Clusters | Avg size | Median size | Max size | Standard Deviation | Singleton clusters | Singleton Ratio |
@@ -136,4 +139,9 @@ Therefore, in practical use, it is appropriate to treat this output as an initia
 
 Even though the dataset consists of 2 million word vectors, Re-kNN completed the clustering within a practical amount of time using a single thread, while keeping peak memory usage (`PeakWorkingSet64`) below 7 GiB.
 This demonstrates the resource efficiency of Re-kNN.
+
+
+
+
+
 

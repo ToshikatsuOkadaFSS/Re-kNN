@@ -263,5 +263,7 @@ The memory consumption after loading all MNIST data is shown below.
 * **Target Data**: MNIST (784 dimensions)
 * **Memory Consumption**: 473.0 MB (measured from the Memory column in the Task Manager process tab)
 
+---
 *Created by Re-kNN Evaluation Suite (2026)*
+
 

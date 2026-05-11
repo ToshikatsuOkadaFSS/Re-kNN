@@ -21,7 +21,7 @@ namespace RekNNUtility
 
     public enum StatusDetailEnum
     {
-        Succed = 0,
+        Success = 0,
 
         ErrorBadInstanceNo = -1,
 
@@ -35,7 +35,7 @@ namespace RekNNUtility
 
         ErrorIOException = -6,
 
-        ErrorOthterException = -99,
+        ErrorOtherException = -99,
     }
 
     public enum DebugModeEnum
@@ -181,7 +181,7 @@ namespace RekNNUtility
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern bool RefineAll(int instanceNo, int limit);
 
-        [DllImport("DLL\\FuutaSystemSvcVectorLibrary.dll")]
+        [DllImport("DLL\\FuutaSystemSvcVectorLibrary")]
         private static extern void SetDebugMode(int mode);
 
 
