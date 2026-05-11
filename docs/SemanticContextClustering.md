@@ -38,8 +38,8 @@ Even if such placement differences are unlikely to cause major issues during inf
 
 ### Clustering Results
 
-* crawl-300d-2M.vec (After registration): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRegistration.txt
-* crawl-300d-2M.vec (After Refine): https://github.com/ToshikatsuOkadaFSS/Re-kNN/tree/master/SemanticContextClustering/crawl-300d-2M-095-AfterRefine.txt
+* crawl-300d-2M.vec (After registration): [crawl-300d-2M-095-AfterRegistration.txt](../SemanticContextClustering/crawl-300d-2M-095-AfterRegistration.txt)
+* crawl-300d-2M.vec (After Refine): [crawl-300d-2M-095-AfterRefine.txt](../SemanticContextClustering/crawl-300d-2M-095-AfterRefine.txt)
 
 #### Statistics
 
