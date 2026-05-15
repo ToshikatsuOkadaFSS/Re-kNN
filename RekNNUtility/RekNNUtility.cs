@@ -17,6 +17,8 @@ namespace RekNNUtility
         MNIST = 2,
 
         CIFAR10 = 3,
+
+        VEC300 = 4,
     }
 
     public enum StatusDetailEnum
@@ -294,6 +296,9 @@ namespace RekNNUtility
                     break;
                 case ModeEnum.BERT:
                     this.dimension = 768;
+                    break;
+                case ModeEnum.VEC300:
+                    this.dimension = 300;
                     break;
                 default:
                     throw new FSCLBugException("Unsupported mode");
