@@ -1,7 +1,10 @@
 ﻿using FuutaSystemSvcCommonLibrary;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -151,6 +154,9 @@ namespace RekNNUtility
         private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool AddBulk(int instanceNo, int count, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -276,12 +282,15 @@ namespace RekNNUtility
             return IntPtr.Zero;
         }
 
+        static RekNNUtility()
+        {
+            // DLLのリゾルバーを登録
+            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), ResolveNativeLibrary);
+        }
+
+
         public RekNNUtility(ModeEnum mode, int instanceNum)
         {
-            // リゾルバーを登録する
-            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), ResolveNativeLibrary);
-
-
             Initialize(mode, instanceNum);
 
             this.CurrentMode = mode;
@@ -306,7 +315,7 @@ namespace RekNNUtility
         }
 
 
-        public void LoadModel(int instanceNo, string basePath)
+        public bool LoadModel(int instanceNo, string basePath)
         {
             // 1. C#のstring(UTF-16)を、UTF-8のバイト配列に変換
             byte[] utf8Bytes = Encoding.UTF8.GetBytes(basePath);
@@ -319,15 +328,16 @@ namespace RekNNUtility
                     {
                         StatusDetailEnum status = GetStatusDetail();
                         DisplayMessage($"Load:true:{status.ToString()}");
+                        return true;
                     }
                     else
                     {
                         StatusDetailEnum status = GetStatusDetail();
                         DisplayMessage($"Load:falase:{status.ToString()}");
+                        return false;
                     }
                 }
             }
-
         }
 
 
@@ -1426,6 +1436,47 @@ namespace RekNNUtility
             }
         }
 
+        public unsafe void AddVectorBulk(int modelNo, int count, float[,,] vector, int[] size, int[] label, int[] docId, int searchMax, double addVectorThreshold)
+        {
+            float* pVector = null;
+            int* psize = null;
+            int* pmainId = null;
+            int* psubId = null;
+
+            try
+            {
+                pVector = ConvertVector(vector, count);
+                psize = ConvertValues(size, count);
+                pmainId = ConvertValues(label, count);
+                psubId = ConvertValues(docId, count);
+
+                if (!AddBulk(modelNo, count, pVector, psize, pmainId, psubId, searchMax, addVectorThreshold))
+                {
+                    throw new Exception("error");
+                }
+            }
+            finally
+            {
+                if (pVector != null)
+                {
+                    NativeMemory.Free(pVector);
+                }
+                if (psize != null)
+                {
+                    NativeMemory.Free(psize);
+                }
+                if (pmainId != null)
+                {
+                    NativeMemory.Free(pmainId);
+                }
+                if (psubId != null)
+                {
+                    NativeMemory.Free(psubId);
+                }
+            }
+        }
+
+
         public void AddVectorForCurrentModel(float[][] vector, int label, int docId, int searchMax, double addVectorThreshold)
         {
             AddVector(0, vector, label, docId, searchMax, addVectorThreshold);
@@ -1527,13 +1578,39 @@ namespace RekNNUtility
         {
             nuint vsize = (nuint)(vector.GetLength(0) * vector[0].GetLength(0) * sizeof(float));
             float* pVector = (float*)NativeMemory.Alloc(vsize);
+            int offset = 0;
+
+
             for (int v1 = 0; v1 < vector.GetLength(0); v1++)
             {
-                for (int v2 = 0; v2 < vector[v1].GetLength(0); v2++)
-                {
-                    pVector[v1 * vector[v1].GetLength(0) + v2] = vector[v1][v2];
-                }
+                Span<float> destSpan = new Span<float>(pVector + vector[v1].GetLength(0) * offset, vector[v1].GetLength(0));
+                vector[v1].CopyTo(destSpan);
+                offset++;
             }
+
+            return pVector;
+        }
+
+        public unsafe float* ConvertVector(float[,,] vector, int count)
+        {
+            nuint vsize = (nuint)(count * vector.GetLength(1) * vector.GetLength(2) * sizeof(float));
+            float* pVector = (float*)NativeMemory.Alloc(vsize);
+
+            Span<float> srcSpan = MemoryMarshal.CreateSpan(ref vector[0, 0, 0], count * vector.GetLength(1) * vector.GetLength(2));
+            Span<float> destSpan = new Span<float>(pVector, count*vector.GetLength(1)*vector.GetLength(2));
+            srcSpan.CopyTo(destSpan);
+
+            return pVector;
+        }
+
+        public unsafe int* ConvertValues(int[] values, int count)
+        {
+            nuint vsize = (nuint)(count * sizeof(int));
+            int* pVector = (int*)NativeMemory.Alloc(vsize);
+
+            ReadOnlySpan<int> srcSpan = values.AsSpan(0, count);
+            Span<int> destSpan = new Span<int>(pVector, count);
+            srcSpan.CopyTo(destSpan);
 
             return pVector;
         }
