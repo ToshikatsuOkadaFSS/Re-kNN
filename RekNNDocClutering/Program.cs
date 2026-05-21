@@ -41,7 +41,29 @@ while (true)
             switch (v)
             {
                 case 1:
-                    ScanAndVectorizeTextAndUpdateDatabase(utility, 1000);
+                    {
+                        Console.Write("Input max documents (default 10000): ");
+                        int maxDocuments = 10000;
+                        if (Console.ReadLine() is string input1)
+                        {
+                            if (int.TryParse(input1, out int result))
+                            {
+                                maxDocuments = result;
+                            }
+                        }
+
+                        Console.Write("Input max add documents (default 1000): ");
+                        int maxAddDocuments = 1000;
+                        if (Console.ReadLine() is string input2)
+                        {
+                            if (int.TryParse(input2, out int result))
+                            {
+                                maxAddDocuments = result;
+                            }
+                        }
+
+                        ScanAndVectorizeTextAndUpdateDatabase(utility, maxDocuments,maxAddDocuments);
+                    }
                     break;
 
                 case 2:
@@ -70,7 +92,7 @@ RekNNDocClutering.CommonValues.SaveSettings();
 /// 
 
 
-void ScanAndVectorizeTextAndUpdateDatabase(RekNNUtility.RekNNUtility utility, int maxDocuments)
+void ScanAndVectorizeTextAndUpdateDatabase(RekNNUtility.RekNNUtility utility, int maxDocuments, int maxAddDocuments)
 {
     if (Directory.Exists(RekNNDocClutering.CommonValues.Settings.TextFilePath) == false)
     {
@@ -91,6 +113,7 @@ void ScanAndVectorizeTextAndUpdateDatabase(RekNNUtility.RekNNUtility utility, in
         RekNNDocClutering.CommonValues.Settings.TextFilePath,
         RekNNDocClutering.CommonValues.Settings.VectorFilePath,
         maxDocuments,
+        maxAddDocuments,
         0);
 
     utility.Save(0, RekNNDocClutering.CommonValues.Settings.DatabasePath);
@@ -102,12 +125,13 @@ int ScanAndVectorizeTextAndUpdateDatabaseFolder(
     string filePath,
     string vectorPath, 
     int maxDocuments,
+    int maxAddDocuments,
     int count)
 {
     DirectoryInfo directoryInfoFile = new DirectoryInfo(filePath);
     DirectoryInfo directoryInfoVector = new DirectoryInfo(filePath);
 
-    foreach (DirectoryInfo directoryInfo1 in directoryInfoVector.GetDirectories())
+    foreach (DirectoryInfo directoryInfo1 in directoryInfoVector.GetDirectories().OrderBy(d => d.Name))
     {
         string newFilePath = Path.Combine(filePath, directoryInfo1.Name);
         string newVectorPath = Path.Combine(vectorPath, directoryInfo1.Name);
@@ -122,15 +146,20 @@ int ScanAndVectorizeTextAndUpdateDatabaseFolder(
         }
 
         count = ScanAndVectorizeTextAndUpdateDatabaseFolder(
-            utility, newFilePath, newVectorPath, maxDocuments, count);
+            utility, newFilePath, newVectorPath, maxDocuments, maxAddDocuments, count);
 
-        if ( count >= maxDocuments)
+        if (count >= maxAddDocuments)
+        {
+            return count;
+        }
+
+        if (RekNNDocClutering.CommonValues.Settings.TextFile2IdDictionary.Count >= maxDocuments)
         {
             return count;
         }
     }
 
-    foreach (FileInfo fileInfo in directoryInfoVector.GetFiles())
+    foreach (FileInfo fileInfo in directoryInfoVector.GetFiles().OrderBy(f => f.Name))
     {
         if (fileInfo.Extension.ToLower() == ".txt")
         {
@@ -206,7 +235,12 @@ int ScanAndVectorizeTextAndUpdateDatabaseFolder(
 
                 Console.WriteLine($"Total Vector : {(utility.GetTotalVectorCount(0) ?? -1).ToString("0")}");
 
-                if (count >= maxDocuments)
+                if (count >= maxAddDocuments)
+                {
+                    return count;
+                }
+
+                if (RekNNDocClutering.CommonValues.Settings.TextFile2IdDictionary.Count >= maxDocuments)
                 {
                     return count;
                 }
