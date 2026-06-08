@@ -26,6 +26,7 @@ while (true)
 {
     Console.WriteLine("1 ... Vectorize (with skip added files)");
     Console.WriteLine("2 ... Refine Database (BULK) & Save");
+    Console.WriteLine("3 ... Output Cluster Info");
     Console.WriteLine("99 ... Exit");
     Console.WriteLine($"Input Command No:");
 
