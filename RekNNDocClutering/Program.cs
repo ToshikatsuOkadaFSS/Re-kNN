@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Security.AccessControl;
 using RekNNDocClutering;
+using System.Runtime.InteropServices;
+using System.Text;
 
 const int BERT_VECTOR_SIZE = 768;
 
@@ -26,7 +28,7 @@ while (true)
 {
     Console.WriteLine("1 ... Vectorize (with skip added files)");
     Console.WriteLine("2 ... Refine Database (BULK) & Save");
-    Console.WriteLine("3 ... Output Cluster Info");
+    Console.WriteLine("3 ... Output cluster info");
     Console.WriteLine("99 ... Exit");
     Console.WriteLine($"Input Command No:");
 
@@ -71,6 +73,33 @@ while (true)
                     utility.RefineDatabase(0, -1);
                     utility.Save(0, RekNNDocClutering.CommonValues.Settings.DatabasePath);
                     RekNNDocClutering.CommonValues.SaveSettings();
+                    break;
+
+                case 3:
+                    {
+                        Console.WriteLine("Checking...");
+
+                        Dictionary<int, List<ResultItemMainAndSub>> result = utility.Clustering(0);
+
+                        // クラスタリングの結果は、text で cluster-id, main-id, sub-id をカンマ区切りで出力する
+                        if ( Directory.Exists(RekNNDocClutering.CommonValues.Settings.DatabasePath) == false)
+                        {
+                            Directory.CreateDirectory(RekNNDocClutering.CommonValues.Settings.DatabasePath);
+                        }
+
+                        FileInfo finfo = new FileInfo(System.IO.Path.Combine(RekNNDocClutering.CommonValues.Settings.DatabasePath, $"clustering_result_{DateTime.Now:yyyyMMdd_HHmmss}.txt"));
+                        using FileStream st = finfo.Create();
+                        using StreamWriter sw = new StreamWriter(st, Encoding.UTF8);
+
+                        foreach(int cls in result.Keys)
+                        {
+                            foreach(ResultItemMainAndSub item in result[cls])
+                            {
+                                string textFilePath = RekNNDocClutering.CommonValues.Settings.Id2TextFileDictionary.ContainsKey(item.MainId) ? RekNNDocClutering.CommonValues.Settings.Id2TextFileDictionary[item.MainId] : "Unknown";
+                                sw.WriteLine(string.Join(",", new int[] { cls, item.MainId, item.SubId }.Select(a=>a.ToString())));
+                            }
+                        }
+                    }
                     break;
 
                 default:
