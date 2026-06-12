@@ -181,6 +181,9 @@ namespace RekNNUtility
         private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, double minThreshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -1662,6 +1665,18 @@ namespace RekNNUtility
         /// <param name="data"></param>
         public unsafe ((int, double)?, List<ResultItemMainAndSub>) Predict(int modelNo, int searchRange, double predictThreshold, float[][] vector)
         {
+            return Predict2(modelNo, searchRange, predictThreshold, -1, vector);
+        }
+
+        /// <summary>
+        /// 推論の実行
+        /// </summary>
+        /// <param name="modelNo"></param>
+        /// <param name="searchRange"></param>
+        /// <param name="predictThreshold"></param>
+        /// <param name="data"></param>
+        public unsafe ((int, double)?, List<ResultItemMainAndSub>) Predict2(int modelNo, int searchRange, double predictThreshold, double minThreshold, float[][] vector)
+        {
             float* pVector = null;
             PredictResult* result = null;
 
@@ -1669,7 +1684,7 @@ namespace RekNNUtility
             {
                 pVector = ConvertVector(vector);
 
-                result = Predict(modelNo, pVector, vector.GetLength(0), searchRange, predictThreshold);
+                result = Predict2(modelNo, pVector, vector.GetLength(0), searchRange, predictThreshold, minThreshold);
 
                 if (result == null)
                 {
@@ -1704,7 +1719,7 @@ namespace RekNNUtility
                 }
 
                 (int, double)? pred = null;
-                if ( classScore.Count> 0)
+                if (classScore.Count > 0)
                 {
                     KeyValuePair<int, double> max = classScore.OrderByDescending(x => x.Value).FirstOrDefault();
                     if (max.Value >= predictThreshold)
@@ -1715,7 +1730,7 @@ namespace RekNNUtility
 
                 DisplayMessage($"Predicted Image(label={pred?.Item1.ToString() ?? "Unknown"}) : Score = {pred?.Item2.ToString("0.0000") ?? "null"})");
 
-                return (pred, sortedResult2.OrderByDescending(x=>x.Score).ToList());
+                return (pred, sortedResult2.OrderByDescending(x => x.Score).ToList());
             }
             finally
             {
