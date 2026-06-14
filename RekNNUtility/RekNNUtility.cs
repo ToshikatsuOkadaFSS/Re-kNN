@@ -198,6 +198,9 @@ namespace RekNNUtility
         [DllImport("DLL\\FuutaSystemSvcVectorLibrary")]
         private static extern unsafe void FreeNativeMemory(void* ptr);
 
+        [DllImport("DLL\\FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe void Clear(int instanceNo);
+
 
         /// <summary>
         /// 画像を表示する関数(引数はデータ番号)
