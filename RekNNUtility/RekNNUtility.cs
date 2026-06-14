@@ -201,6 +201,9 @@ namespace RekNNUtility
         [DllImport("DLL\\FuutaSystemSvcVectorLibrary")]
         private static extern unsafe void Clear(int instanceNo);
 
+        [DllImport("DLL\\FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe void InitializeInstance(int instanceNo, ModeEnum mode);
+
 
         /// <summary>
         /// 画像を表示する関数(引数はデータ番号)
