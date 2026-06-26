@@ -1,0 +1,35 @@
+# Rename this file to build-wheels-cibuildwheel.yml when binary wheel CI is needed.
+#
+# cibuildwheel is useful when platform-specific wheel builds become necessary.
+# This template assumes the native Re-kNN binaries are prepared before wheel build.
+#
+# name: Build wheels
+#
+# on:
+#   workflow_dispatch:
+#
+# jobs:
+#   build_wheels:
+#     name: Build wheels on ${{ matrix.os }}
+#     runs-on: ${{ matrix.os }}
+#     strategy:
+#       matrix:
+#         os: [ubuntu-latest, windows-latest]
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.12"
+#
+#       - name: Install cibuildwheel
+#         run: python -m pip install cibuildwheel
+#
+#       - name: Build wheels
+#         run: python -m cibuildwheel --output-dir wheelhouse
+#
+#       - uses: actions/upload-artifact@v4
+#         with:
+#           name: wheels-${{ matrix.os }}
+#           path: wheelhouse/*.whl

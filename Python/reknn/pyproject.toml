@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reknn"
+version = "0.1.0"
+description = "Deterministic vector search and kNN engine with evidence output"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.26"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+reknn = [
+    "lib/windows-x64/*.dll",
+    "lib/linux-x64/*.so"
+]

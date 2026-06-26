@@ -1,6 +1,21 @@
 # Release Notes
 
-## 2026.5.11 (Version 1.1)
+## June 29, 2026 (Version 1.2)
+
+### Added
+
+- Added a Python package  
+- Added APIs associated with the Python packaging  
+- Added a sample application for Python
+
+### Changed
+
+- Fixed an issue where the result was incorrect in some cases during inference  
+- Fixed an issue where searching with vectors having zero norm produced incorrect results
+
+
+
+## May 11, 2026 (Version 1.1)
 
 ### Added
 

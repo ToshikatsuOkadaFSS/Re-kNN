@@ -18,6 +18,10 @@ Search results are designed to return IDs such as the document ID to which a vec
 For MNIST and similar datasets, the label number is registered as `Main`, and the data number is registered as `Sub`.
 For BERT and similar datasets, the document number is registered as `Main`, and the sentence number within the document is registered as `Sub`.
 
+### Notes on the Trial Version
+
+In the trial version, the dimension setting is not arbitrary. You must select one from the following options: BERT (768 dimensions), MNIST (784 dimensions), CIFAR10 (3072 dimensions), or VEC300 (300 dimensions).
+
 ## 3. DLL / .so I/F Definitions
 
 To call the native library, the following definitions must be inserted on the caller side. This sample is written in C#.
@@ -33,6 +37,8 @@ Struct and enum definitions:
         MNIST = 2,
 
         CIFAR10 = 3,
+
+        VEC300 = 4,
     }
 
     public enum StatusDetailEnum
@@ -165,6 +171,9 @@ DLL / .so call definitions:
         private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool AddBulk(int instanceNo, int count, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -189,6 +198,9 @@ DLL / .so call definitions:
         private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, double minThreshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -199,6 +211,16 @@ DLL / .so call definitions:
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern void SetDebugMode(int mode);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void FreeNativeMemory(void* ptr);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void Clear(int instanceNo);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void InitializeInstance(int instanceNo, ModeEnum mode);
+
 ```
 
 ## 4. Function List
@@ -208,6 +230,7 @@ DLL / .so call definitions:
 | [Initialize](#Initialize)             | Initializes Re-kNN                                               |
 | [Load](#Load)                         | Loads a saved DB                                                 |
 | [Add](#Add)                           | Adds vector information                                          |
+| [AddBulk](#AddBulk)             |  Adds vector information (Bulk)                                   |
 | [Refine](#Refine)                     | Optimizes the index structure                                    |
 | [Delete](#Delete)                     | Deletes vector information                                       |
 | [Search](#Search)                     | Searches vector information                                      |
@@ -216,10 +239,14 @@ DLL / .so call definitions:
 | [SaveWithCount](#SaveWithCount)       | Saves the DB with count information (for debugging / deprecated) |
 | [SimpleClustering](#SimpleClustering) | Gets cluster information                                         |
 | [Predict](#Predict)                   | Performs inference using a specified vector                      |
+| [Predict2](#Predict2)                   | Performs inference using a specified vector (new version)                     |
 | [IsNeedRefine](#IsNeedRefine)         | Checks whether a vector group is subject to Refine               |
 | [GetStatusDetail](#GetStatusDetail)   | Gets detailed execution result information                       |
 | [RefineAll](#RefineAll)               | Executes Refine in batch                                         |
 | [SetDebugMode](#SetDebugMode)         | Sets the debug mode                                              |
+| [FreeNativeMemory](#FreeNativeMemory)         | Free allocated native memory |
+| [Clear](#Clear)         | Clear instance |
+| [InitializeInstance](#InitializeInstance)         | Initialize instance |
 
 ---
 
@@ -283,6 +310,33 @@ Adds vector information to the specified instance.
 | int           | length        | Number of vectors to register                                                                                    |
 | int           | mainId        | Main ID of the vectors to register                                                                               |
 | int           | subId         | Sub ID of the vectors to register                                                                                |
+| int           | searchMax     | Search width used when searching for the registration destination. `5` is recommended                            |
+| double        | threshold     | Threshold for index match judgment                                                                               |
+
+| Return Value | Description            |
+| :----------- | :--------------------- |
+| true         | Registration succeeded |
+| false        | Registration failed    |
+
+---
+
+### AddBulk
+
+Adds vector information to the specified instance. (bulk mode)
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool AddBulk(int instanceNo, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+```
+
+| Argument Type | Argument Name | Description                                                                                                      |
+| :------------ | :------------ | :--------------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo    | Instance number                                                                                                  |
+| int           | count    | number of vectors set                                                                                                 |
+| float*        | vec           | Vectors to register. The number of vectors is `length[x]`, and each vector has the size specified at initialization |
+| int*           | size        | Number of vectors to register for each vectors set                                                                                   |
+| int*           | mainId        | Main ID of the vectors to register for each vectors set                                                                               |
+| int*           | subId         | Sub ID of the vectors to register for each vectors set                                                                                |
 | int           | searchMax     | Search width used when searching for the registration destination. `5` is recommended                            |
 | double        | threshold     | Threshold for index match judgment                                                                               |
 
@@ -380,7 +434,7 @@ finally
 {
     if ( result != null)
     {
-        NativeMemory.Free(result);
+        FreeNativeMemory(result);
     }
 }
 ```
@@ -489,7 +543,7 @@ finally
 {
     if ( result != null)
     {
-        NativeMemory.Free(result);
+        FreeNativeMemory(result);
     }
 }
 ```
@@ -537,7 +591,56 @@ finally
 {
     if ( result != null)
     {
-        NativeMemory.Free(result);
+        FreeNativeMemory(result);
+    }
+}
+```
+
+---
+
+### Predict2
+
+Performs inference on which category the specified vector belongs to in the specified instance.
+This inference engine also returns evidence information for the inference. This makes it possible to verify the validity of the judgment.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, double minThreshold);
+```
+
+| Argument Type | Argument Name   | Description                                                                                                                                                                                                    |
+| :------------ | :-------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo      | Instance number                                                                                                                                                                                                |
+| float*        | vec             | Vectors to infer. The number of vectors is `length`, and each vector has the size specified at initialization                                                                                                  |
+| int           | length          | Number of vectors to infer                                                                                                                                                                                     |
+| int           | kValue          | Number of similar data items used for voting                                                                                                                                                                   |
+| double        | detectThreshold | Threshold for accepting the voting result. The item that exceeds the threshold and has the highest evaluation value becomes the inference result. If no data exceeds the threshold, it is judged as “unknown.” |
+| double | minThreshold | Threshold for excluding low-score voting results. Candidates whose score is less than this threshold are ignored. If no candidate remains, the result is judged as “unknown.” |
+
+| Return Value | Description                                                                                                                                                                                                                                                               |
+| :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| not null     | Inference information. Check the `PredictResult` structure.<br>A `PredictResult` is also returned for an unknown judgment. Check `PredictedLabel` for details of the unknown judgment.<br>**The returned pointer must be freed by the caller using `NativeMemory.Free`.** |
+| null         | Inference processing failed                                                                                                                                                                                                                                               |
+
+The following is an example of memory release processing.
+Only the top-level pointer needs to be freed.
+
+```C#
+PredictResult* result = null;
+
+try
+{
+    // your codes here
+
+    result = Predict2(0, vector, len, k, th, minTh);
+
+    // your codes here
+}
+finally
+{
+    if ( result != null)
+    {
+        FreeNativeMemory(result);
     }
 }
 ```
@@ -626,3 +729,49 @@ Sets the debug mode.
 | Argument Type | Argument Name | Description                                                                                              |
 | :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
 | int           | mode          | Debug mode<br>None = 0 : Do not output<br>Console = 1 : Output to Console<br>Debug = 2 : Output to Debug |
+
+---
+
+### FreeNativeMemory
+
+Free allocated native memory.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void FreeNativeMemory(void* ptr);
+```
+
+| Argument Type | Argument Name | Description                                                                                              |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
+| void*           | ptr          | Pointer of native memory |
+
+---
+
+### Clear
+
+Clear instance.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void Clear(int instanceNo);
+```
+
+| Argument Type | Argument Name | Description                                                                                              |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo | Instance number                                                                                                                      |
+
+---
+
+### InitializeInstance
+
+Initialize instance.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void InitializeInstance(int instanceNo, ModeEnum mode);
+```
+
+| Argument Type | Argument Name | Description                                                                                              |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo | Instance number                                                                                                                      |
+| ModeEnum      | mode          | Initialization mode: BERT, MNIST, or CIFAR10, or VEC300   |
