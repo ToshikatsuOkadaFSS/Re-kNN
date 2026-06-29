@@ -17,6 +17,10 @@ Re-kNN は、複数の独立した Index をメモリ上に展開することを
 MNIST 等では、Main にラベル番号、Sub にデータ番号を登録する形となる。
 BERT 等では、Main に文書番号、Sub に文書内のセンテンス番号を登録する形となる。
 
+### 評価版での注意事項
+
+評価版では、次元設定は任意ではない。BERT（768次元）、MNIST（784次元）、CIFAR10（3072次元）、VEC300（300次元）のいずれかから選択する必要がある。
+
 ## 3. DLL / .so I/F 定義
 
 ネイティブライブラリを呼び出すため、呼び出し側に、以下の定義を挿入する必要がある。このサンプルは、C# にて記述してある。
@@ -32,6 +36,8 @@ struct, enum の定義
         MNIST = 2,
 
         CIFAR10 = 3,
+
+        VEC300 = 4,
     }
 
     public enum StatusDetailEnum
@@ -163,6 +169,9 @@ DLL / .so 呼び出しの定義
         private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool AddBulk(int instanceNo, int count, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -187,6 +196,9 @@ DLL / .so 呼び出しの定義
         private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, double minThreshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -197,6 +209,15 @@ DLL / .so 呼び出しの定義
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern void SetDebugMode(int mode);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void FreeNativeMemory(void* ptr);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void Clear(int instanceNo);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void InitializeInstance(int instanceNo, ModeEnum mode);
 ```
 
 ## 4. 一覧
@@ -206,6 +227,7 @@ DLL / .so 呼び出しの定義
 | [Initialize](#Initialize) | Re-kNN の初期化 |
 | [Load](#Load) | 保存したDBの読み込み |
 | [Add](#Add) | ベクトル情報の追加 |
+| [AddBulk](#AddBulk)             |  ベクトル情報の追加 (Bulk)                                   |
 | [Refine](#Refine) | Index 構造の最適化 |
 | [Delete](#Delete) | ベクトル情報の削除 | 
 | [Search](#Search) | ベクトル情報の検索 |
@@ -214,10 +236,14 @@ DLL / .so 呼び出しの定義
 | [SaveWithCount](#SaveWithCount) | DB をカウント情報付きで保存(デバッグ用・非推奨) |
 | [SimpleClustering](#SimpleClustering) | クラスタ情報の獲得 |
 | [Predict](#Predict) | 指示ベクトルでの推論 |
+| [Predict2](#Predict2)                   | 指示ベクトルでの推論（新バージョン）                   |
 | [IsNeedRefine](#IsNeedRefine) | ベクトル群が Refine 対象であるかを確認 |
 | [GetStatusDetail](#GetStatusDetail) | 実行結果の詳細情報の獲得 |
 | [RefineAll](#RefineAll) | Refine 処理の一括実行 |
 | [SetDebugMode](#SetDebugMode) | Debug モードの設定 |
+| [FreeNativeMemory](#FreeNativeMemory)         | Native Memory の解放 |
+| [Clear](#Clear)         | インスタンスのクリア |
+| [InitializeInstance](#InitializeInstance)         | インスタンスの初期化 |
 
 ----
 
@@ -233,7 +259,7 @@ DLL / .so 呼び出しの定義
 
 | 引数の型 | 引数名 | 意味 |
 | :--- | :--- | :--- |
-| ModeEnum | mode | 初期化モード(BERT, MNIST, CIFAR10 のいずれか) |
+| ModeEnum | mode | 初期化モード(BERT, MNIST, CIFAR10, VEC300 のいずれか) |
 | int | instanceNum | 生成するインデックス領域(DB)のインスタンス数 |
 
 | 戻り値 | 意味 |
@@ -281,6 +307,33 @@ DLL / .so 呼び出しの定義
 | int | length | 登録するベクトルの数 |
 | int | mainId | 登録するベクトルのメインID |
 | int | subId | 登録するベクトルのサブID |
+| int | searchMax | 登録先を検索する際の探索幅(5を推奨) |
+| double  | threshold | インデックスの一致判定閾値 |
+
+| 戻り値 | 意味 |
+| :--- | :--- |
+| true | 登録成功 |
+| false | 登録失敗 |
+
+----
+
+### AddBulk 
+
+指示したインスタンスに、ベクトル情報を一括で追加する。
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool AddBulk(int instanceNo, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+```
+
+| 引数の型 | 引数名 | 意味 |
+| :--- | :--- | :--- |
+| int | instanceNo | インスタンス番号 |
+| int           | count    | ベクトル群の数  |
+| float* | vec | 登録するベクトル(length個の初期化時に指定したサイズのベクトル) |
+| int* | size | 登録するベクトルの数(ベクトル群ごと) |
+| int* | mainId | 登録するベクトルのメインID(ベクトル群ごと) |
+| int* | subId | 登録するベクトルのサブID(ベクトル群ごと) |
 | int | searchMax | 登録先を検索する際の探索幅(5を推奨) |
 | double  | threshold | インデックスの一致判定閾値 |
 
@@ -377,7 +430,7 @@ finally
 {
     if ( result != null)
     {
-        NativeMemory.Free(result);
+        FreeNativeMemory(result);
     }
 }
 ```
@@ -485,7 +538,7 @@ finally
 {
     if ( result != null)
     {
-        NativeMemory.Free(result);
+        FreeNativeMemory(result);
     }
 }
 ```
@@ -532,7 +585,55 @@ finally
 {
     if ( result != null)
     {
-        NativeMemory.Free(result);
+        FreeNativeMemory(result);
+    }
+}
+```
+
+----
+
+### Predict2
+
+指示したインスタンスに対して、指示したベクトルがどこに所属するかを推論する。
+本推論エンジンでは、推論の根拠情報も返す。これにより、判断の妥当性の検証が可能となる。
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, minThreshold);
+```
+
+| 引数の型 | 引数名 | 意味 |
+| :--- | :--- | :--- |
+| int | instanceNo | インスタンス番号 |
+| float* | vec | 推論するベクトル(length個の初期化時に指定したサイズのベクトル) |
+| int | length | 推論するベクトルの数 |
+| int | kValue | 投票対象とする類似データの数 |
+| double | detectThreshold | 投票結果を採用するための閾値。閾値を超え、最大の評価値を持つものを推論結果とする。閾値を超えるデータが無い場合は「未知」と判断する。 |
+| double | minThreshold | 投票を拒否するための閾値。閾値以下のものは、投票対象としない。閾値を超えるデータが無い場合は「未知」と判断する。 |
+
+| 戻り値 | 意味 |
+| :--- | :--- |
+| not null | 推論情報(PredictResult 構造体を確認する) <br>未知判定の場合も `PredictResult` が返る。未知判定の詳細は `PredictedLabel` を確認する。<br> **返却されるポインタは、呼び出し側で `NativeMemory.Free` により解放すること。** |
+| null | 推論処理に失敗 |
+
+以下にメモリ解放処理の例を示す。先頭のポインタを解放するだけで良い。
+
+```C#
+PredictResult* result = null;
+
+try
+{
+    // your codes here
+
+    result = Predict2(0, vector, len, k, th, minTh);
+
+    // your codes here
+}
+finally
+{
+    if ( result != null)
+    {
+        FreeNativeMemory(result);
     }
 }
 ```
@@ -621,4 +722,51 @@ Debug モードの設定
 | 引数の型 | 引数名 | 意味 |
 | :--- | :--- | :--- |
 | int | mode | debug mode<br>None = 0 : 表示しない<br>Console = 1 : Console 出力に表示する<br>Debug = 2 : Debug 出力に表示する |
+
+---
+
+### FreeNativeMemory
+
+確保されている Native Memory を解放する.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void FreeNativeMemory(void* ptr);
+```
+
+| Argument Type | Argument Name | Description                                                                                              |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
+| void*           | ptr          | NativeMemory のポインタ |
+
+---
+
+### Clear
+
+指定したインスタンスをクリアする.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void Clear(int instanceNo);
+```
+
+| Argument Type | Argument Name | Description                                                                                              |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo | インスタンス番号 |
+
+---
+
+### InitializeInstance
+
+指定したインスタンスを初期化する.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern void InitializeInstance(int instanceNo, ModeEnum mode);
+```
+
+| Argument Type | Argument Name | Description                                                                                              |
+| :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
+| int           | instanceNo | インスタンス番号 |
+| ModeEnum      | mode          | 初期化モード(BERT, MNIST, CIFAR10, VEC300 のいずれか) |
+
 

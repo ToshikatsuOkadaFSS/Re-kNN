@@ -1,0 +1,7 @@
+{
+  "TextFilePath": "Y:\\jupyter-lab\\DocuSleuth\\jawikiout-txt",
+  "VectorFilePath": "Y:\\jupyter-lab\\Re-kNN_JapaneseBert\\vector",
+  "DatabasePath": "Y:\\jupyter-lab\\Re-kNN_JapaneseBert\\database",
+  "SimilarityThreshold" : 0.9,
+  "SearchMaxNumForAddVector": 5
+}

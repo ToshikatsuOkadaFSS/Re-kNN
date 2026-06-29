@@ -1,7 +1,10 @@
 ﻿using FuutaSystemSvcCommonLibrary;
 using System.Diagnostics.CodeAnalysis;
+using System.Numerics;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -17,6 +20,8 @@ namespace RekNNUtility
         MNIST = 2,
 
         CIFAR10 = 3,
+
+        VEC300 = 4,
     }
 
     public enum StatusDetailEnum
@@ -149,6 +154,9 @@ namespace RekNNUtility
         private static extern unsafe bool Add(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe bool AddBulk(int instanceNo, int count, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool Refine(int instanceNo, float* vec, int length, int mainId, int subId, int searchMax, double threshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -171,6 +179,9 @@ namespace RekNNUtility
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe PredictResult* Predict(int instanceNo, float* vec, int length, int kValue, double detectThreshold);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, double minThreshold);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe bool IsNeedRefine(int instanceNo, float* vec, int length, int searchMax, int mainId, int subId);
@@ -274,12 +285,15 @@ namespace RekNNUtility
             return IntPtr.Zero;
         }
 
+        static RekNNUtility()
+        {
+            // DLLのリゾルバーを登録
+            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), ResolveNativeLibrary);
+        }
+
+
         public RekNNUtility(ModeEnum mode, int instanceNum)
         {
-            // リゾルバーを登録する
-            NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), ResolveNativeLibrary);
-
-
             Initialize(mode, instanceNum);
 
             this.CurrentMode = mode;
@@ -295,13 +309,16 @@ namespace RekNNUtility
                 case ModeEnum.BERT:
                     this.dimension = 768;
                     break;
+                case ModeEnum.VEC300:
+                    this.dimension = 300;
+                    break;
                 default:
                     throw new FSCLBugException("Unsupported mode");
             }
         }
 
 
-        public void LoadModel(int instanceNo, string basePath)
+        public bool LoadModel(int instanceNo, string basePath)
         {
             // 1. C#のstring(UTF-16)を、UTF-8のバイト配列に変換
             byte[] utf8Bytes = Encoding.UTF8.GetBytes(basePath);
@@ -314,15 +331,16 @@ namespace RekNNUtility
                     {
                         StatusDetailEnum status = GetStatusDetail();
                         DisplayMessage($"Load:true:{status.ToString()}");
+                        return true;
                     }
                     else
                     {
                         StatusDetailEnum status = GetStatusDetail();
                         DisplayMessage($"Load:falase:{status.ToString()}");
+                        return false;
                     }
                 }
             }
-
         }
 
 
@@ -1421,6 +1439,47 @@ namespace RekNNUtility
             }
         }
 
+        public unsafe void AddVectorBulk(int modelNo, int count, float[,,] vector, int[] size, int[] label, int[] docId, int searchMax, double addVectorThreshold)
+        {
+            float* pVector = null;
+            int* psize = null;
+            int* pmainId = null;
+            int* psubId = null;
+
+            try
+            {
+                pVector = ConvertVector(vector, count);
+                psize = ConvertValues(size, count);
+                pmainId = ConvertValues(label, count);
+                psubId = ConvertValues(docId, count);
+
+                if (!AddBulk(modelNo, count, pVector, psize, pmainId, psubId, searchMax, addVectorThreshold))
+                {
+                    throw new Exception("error");
+                }
+            }
+            finally
+            {
+                if (pVector != null)
+                {
+                    NativeMemory.Free(pVector);
+                }
+                if (psize != null)
+                {
+                    NativeMemory.Free(psize);
+                }
+                if (pmainId != null)
+                {
+                    NativeMemory.Free(pmainId);
+                }
+                if (psubId != null)
+                {
+                    NativeMemory.Free(psubId);
+                }
+            }
+        }
+
+
         public void AddVectorForCurrentModel(float[][] vector, int label, int docId, int searchMax, double addVectorThreshold)
         {
             AddVector(0, vector, label, docId, searchMax, addVectorThreshold);
@@ -1522,13 +1581,39 @@ namespace RekNNUtility
         {
             nuint vsize = (nuint)(vector.GetLength(0) * vector[0].GetLength(0) * sizeof(float));
             float* pVector = (float*)NativeMemory.Alloc(vsize);
+            int offset = 0;
+
+
             for (int v1 = 0; v1 < vector.GetLength(0); v1++)
             {
-                for (int v2 = 0; v2 < vector[v1].GetLength(0); v2++)
-                {
-                    pVector[v1 * vector[v1].GetLength(0) + v2] = vector[v1][v2];
-                }
+                Span<float> destSpan = new Span<float>(pVector + vector[v1].GetLength(0) * offset, vector[v1].GetLength(0));
+                vector[v1].CopyTo(destSpan);
+                offset++;
             }
+
+            return pVector;
+        }
+
+        public unsafe float* ConvertVector(float[,,] vector, int count)
+        {
+            nuint vsize = (nuint)(count * vector.GetLength(1) * vector.GetLength(2) * sizeof(float));
+            float* pVector = (float*)NativeMemory.Alloc(vsize);
+
+            Span<float> srcSpan = MemoryMarshal.CreateSpan(ref vector[0, 0, 0], count * vector.GetLength(1) * vector.GetLength(2));
+            Span<float> destSpan = new Span<float>(pVector, count*vector.GetLength(1)*vector.GetLength(2));
+            srcSpan.CopyTo(destSpan);
+
+            return pVector;
+        }
+
+        public unsafe int* ConvertValues(int[] values, int count)
+        {
+            nuint vsize = (nuint)(count * sizeof(int));
+            int* pVector = (int*)NativeMemory.Alloc(vsize);
+
+            ReadOnlySpan<int> srcSpan = values.AsSpan(0, count);
+            Span<int> destSpan = new Span<int>(pVector, count);
+            srcSpan.CopyTo(destSpan);
 
             return pVector;
         }
@@ -1580,6 +1665,18 @@ namespace RekNNUtility
         /// <param name="data"></param>
         public unsafe ((int, double)?, List<ResultItemMainAndSub>) Predict(int modelNo, int searchRange, double predictThreshold, float[][] vector)
         {
+            return Predict2(modelNo, searchRange, predictThreshold, -1, vector);
+        }
+
+        /// <summary>
+        /// 推論の実行
+        /// </summary>
+        /// <param name="modelNo"></param>
+        /// <param name="searchRange"></param>
+        /// <param name="predictThreshold"></param>
+        /// <param name="data"></param>
+        public unsafe ((int, double)?, List<ResultItemMainAndSub>) Predict2(int modelNo, int searchRange, double predictThreshold, double minThreshold, float[][] vector)
+        {
             float* pVector = null;
             PredictResult* result = null;
 
@@ -1587,7 +1684,7 @@ namespace RekNNUtility
             {
                 pVector = ConvertVector(vector);
 
-                result = Predict(modelNo, pVector, vector.GetLength(0), searchRange, predictThreshold);
+                result = Predict2(modelNo, pVector, vector.GetLength(0), searchRange, predictThreshold, minThreshold);
 
                 if (result == null)
                 {
@@ -1622,7 +1719,7 @@ namespace RekNNUtility
                 }
 
                 (int, double)? pred = null;
-                if ( classScore.Count> 0)
+                if (classScore.Count > 0)
                 {
                     KeyValuePair<int, double> max = classScore.OrderByDescending(x => x.Value).FirstOrDefault();
                     if (max.Value >= predictThreshold)
@@ -1633,7 +1730,7 @@ namespace RekNNUtility
 
                 DisplayMessage($"Predicted Image(label={pred?.Item1.ToString() ?? "Unknown"}) : Score = {pred?.Item2.ToString("0.0000") ?? "null"})");
 
-                return (pred, sortedResult2.OrderByDescending(x=>x.Score).ToList());
+                return (pred, sortedResult2.OrderByDescending(x => x.Score).ToList());
             }
             finally
             {

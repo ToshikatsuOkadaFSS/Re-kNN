@@ -24,6 +24,7 @@
   <Project Path="RekNNCIFAR10/RekNNCIFAR10.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="RekNNDocClutering/RekNNDocClutering.csproj" Id="abaa7157-a7cb-4593-b229-d5553edfe773" />
   <Project Path="RekNNMNIST/RekNNMNIST.csproj">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
