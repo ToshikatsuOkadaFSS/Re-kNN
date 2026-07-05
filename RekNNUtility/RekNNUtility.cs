@@ -163,6 +163,9 @@ namespace RekNNUtility
         private static extern int Delete(int instanceNo, int mainId, int subId);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern int Delete2(int instanceNo, int mainId);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
