@@ -76,7 +76,12 @@ class ReKNN:
         vec = np.array(X)
         main = np.array(y)
 
+        #print(f"shape = {vec.shape}")
+
         length = vec.shape[0]
+
+        main_ids = np.array(y)
+
         if item_ids is None:
             item_ids = np.array([-1 for x in range(length)])
         else:
@@ -93,7 +98,16 @@ class ReKNN:
         if length > 0:
             length_info = np.full(length, 1, dtype=np.int64)
             #print(f"vec.shape={vec.shape}")
-            self._native.AddBulk(target_instance, length, vec, length_info, y, item_ids, self.add_k, self.min_similarity)
+            #print(f"length={length}")
+            #print(f"length_info={length_info}")
+            #print(f"y={y}")
+            #print(f"item_ids={item_ids}")
+            self._native.AddBulk(target_instance, length, vec, length_info, main_ids, item_ids, self.add_k, self.min_similarity)
+        else:
+            pass
+            #print(f"length={length}")
+            #print(f"vec={vec}")
+
 
         #if verbose:
         #    for i in tqdm(range(length)):

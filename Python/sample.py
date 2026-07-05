@@ -125,6 +125,9 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
 
     #print(relPath)
 
+    if count >= maxCount:
+        return count
+
     if relPath is None:
         chkPath = basePath
     else:
@@ -147,6 +150,13 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
         if count >= maxCount:
             break
 
+    prev = int(model.get_total_vector(model.current_instance))
+    add_vector_set = {}
+    key_set = []
+
+    if count >= maxCount:
+        return count
+
     for file in files:
         srcPath = basePath / relPath / file
         relFile = relPath / file
@@ -158,10 +168,12 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
         print(relFileStr)
         fileId = len(textDict)
         textDict[relFileStr] = fileId
-        
+
+        add_vector_set[fileId] = {}
+
         with open(srcPath, mode='r', encoding='utf-8') as ifp:
-            lineNo = 0
-            for line in ifp:
+            key_set_sub = []
+            for lineNo, line in enumerate(ifp):
                 line = line.rstrip('\n')
                 #print(line)
                 
@@ -174,24 +186,77 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
 
                 vec = token_embeddings.numpy()
 
-                #print(vec.shape)
+                add_vector_set[fileId][lineNo] = [
+                        tokens, 
+                        vec, 
+                        np.full(vec.shape[0], fileId, dtype=np.int32),
+                        np.full(vec.shape[0], lineNo, dtype=np.int32)]
 
-                if model.get_total_vector(model.current_instance) == 0.0:
-                    #print("fit")
-                    model.fit(vec, [fileId for x in range(vec.shape[0])], item_ids=[lineNo for x in range(vec.shape[0])])
-                else:
-                    #print("add")
-                    model.add(vec, [fileId for x in range(vec.shape[0])], item_ids=[lineNo for x in range(vec.shape[0])])
-                lineNo += 1
+                key_set_sub += [[fileId, lineNo]]
 
-                #print(f"total vec={model.get_total_vector()}")
+        key_set += key_set_sub
 
         count += 1
 
-        if count >= maxCount:
+        if count % 10 == 0:
+            # 一旦 flush する
+            if len(key_set) > 0:
+                add_vector = np.concatenate([add_vector_set[x][y][1] for x,y in key_set], axis=0)
+                add_fileIds = np.concatenate([add_vector_set[x][y][2] for x,y in key_set], axis=0)
+                add_lineInfos = np.concatenate([add_vector_set[x][y][3] for x,y in key_set], axis=0)
+
+                if int(model.get_total_vector(model.current_instance)) == 0:
+                    #print("fit")
+                    #model.fit(vec, np.full(vec.shape[0], fileId, dtype=np.int32), np.full(vec.shape[0], lineNo, dtype=np.int32))
+                    model.fit(add_vector, add_fileIds, add_lineInfos)
+                else:
+                    #print("add")
+                    #model.add(vec, np.full(vec.shape[0], fileId, dtype=np.int32), np.full(vec.shape[0], lineNo, dtype=np.int32))
+                    model.add(add_vector, add_fileIds, add_lineInfos)
+
             now = datetime.now()
             print(f"{now.strftime('%Y-%m-%d %H:%M:%S')}:{count}:total vector = {model.get_total_vector()}")
+
+            after = int(model.get_total_vector(model.current_instance))
+
+            #print(f"prev = {prev}, after={after}, add={vec.shape[0]}")
+            if ( prev + add_vector.shape[0]) != after:
+                print(f"prev = {prev}, after={after}, add={add_vector.shape[0]}")
+                print(f"SIZE ERROR!!!")
+                
+            prev = int(model.get_total_vector(model.current_instance))
+            add_vector_set = {}
+            key_set = []
+
+
+        if count >= maxCount:
             break
+
+    if len(key_set) > 0:
+        add_vector = np.concatenate([add_vector_set[x][y][1] for x,y in key_set], axis=0)
+        add_fileIds = np.concatenate([add_vector_set[x][y][2] for x,y in key_set], axis=0)
+        add_lineInfos = np.concatenate([add_vector_set[x][y][3] for x,y in key_set], axis=0)
+
+        if int(model.get_total_vector(model.current_instance)) == 0:
+            #print("fit")
+            #model.fit(vec, np.full(vec.shape[0], fileId, dtype=np.int32), np.full(vec.shape[0], lineNo, dtype=np.int32))
+            model.fit(add_vector, add_fileIds, add_lineInfos)
+        else:
+            #print("add")
+            #model.add(vec, np.full(vec.shape[0], fileId, dtype=np.int32), np.full(vec.shape[0], lineNo, dtype=np.int32))
+            model.add(add_vector, add_fileIds, add_lineInfos)
+
+        now = datetime.now()
+        print(f"{now.strftime('%Y-%m-%d %H:%M:%S')}:{count}:total vector = {model.get_total_vector()}")
+
+        after = int(model.get_total_vector(model.current_instance))
+
+        #print(f"prev = {prev}, after={after}, add={vec.shape[0]}")
+        if ( prev + add_vector.shape[0]) != after:
+            print(f"prev = {prev}, after={after}, add={add_vector.shape[0]}")
+            print(f"SIZE ERROR!!!")
+
+    #print(f"total vec={model.get_total_vector()}")
         
     return count    
 
@@ -207,11 +272,13 @@ def search(model, bert_model, text, max_line, text_rev_dict):
 
     vec = token_embeddings.numpy()
 
-    print(vec.shape)
+    #print(vec.shape)
 
     result = model.search(vec)
 
-    print("<<< Result (by document) >>>")
+    #print(result)
+
+    print("\n<<< Result (by document) >>>")
     count = 0
     for id, score in sorted([[x, result['ResultItemMains'][x]] for x in result['ResultItemMains'].keys()], key=lambda x: x[1], reverse=True)[0:5]:
         fname = text_rev_dict[id]
@@ -228,32 +295,92 @@ def search(model, bert_model, text, max_line, text_rev_dict):
                     break
         count += 1
 
-    print("<<< Result (by sentence) >>>")
+    print("\n<<< Result Detail (by document) >>>")
+    for i,word in enumerate(tokens):
+        print(f"#### word = {word} ####")
+        count = 0
+        for id, score in sorted(
+            [
+                [
+                    x, 
+                    result['ResultItemMainDetails'][i][x],
+                ] for x in result['ResultItemMainDetails'][i].keys()
+            ],
+            key=lambda x: x[1],
+            reverse=True
+        ):
+            print(id, score)
+            fname = text_rev_dict[id]
+            print("### Rank : {0}".format(count))
+            print("### {0} : Score {1}".format(fname, score))
+            fpath = basePath / fname
+            with open(fpath, mode='r', encoding='utf-8') as ifp:
+                lineNo = 0
+                for line in ifp:
+                    #line = line.rstrip('\n')
+                    print(line.rstrip('\n'))
+                    lineNo += 1
+                    if lineNo >= max_line:
+                        break
+            count += 1
+
+    print("\n<<< Result (by document-sub) >>>")
     count = 0
     for id, subId, score in sorted(
-        [
             [
-                x, 
-                result['ResultItemMainAndSubs'][x][0],
-                result['ResultItemMainAndSubs'][x][1]
-            ] for x in result['ResultItemMainAndSubs'].keys()
-        ],
-        key=lambda x: x[2],
-        reverse=True
-    )[0:20]:
+                [
+                    x,
+                    result['ResultItemMainAndSubs'][x][0],
+                    result['ResultItemMainAndSubs'][x][1],
+                ]
+                for x in result['ResultItemMainAndSubs'].keys()
+            ], 
+            key=lambda x: x[2], 
+            reverse=True)[0:5]:
         fname = text_rev_dict[id]
         print("### Rank : {0}".format(count))
-        print("### {0} : Score {1}".format(fname, score))
+        print("### {0}, {1} : Score {2}".format(fname, subId, score))
         fpath = basePath / fname
         with open(fpath, mode='r', encoding='utf-8') as ifp:
             lineNo = 0
             for line in ifp:
                 if lineNo == subId:
+                    #line = line.rstrip('\n')
                     print(line.rstrip('\n'))
                     break
                 lineNo += 1
-    
         count += 1
+
+    print("\n<<< Result Detail(by document-sub) >>>")
+    for i,word in enumerate(tokens):
+        print(f"#### word = {word} ####")
+        count = 0
+        for id, subId, score in sorted(
+            [
+                [
+                    x,
+                    result['ResultItemMainAndSubDetails'][i][x][0],
+                    result['ResultItemMainAndSubDetails'][i][x][1],
+                ] 
+                for x in result['ResultItemMainAndSubDetails'][i].keys()
+            ],
+            key=lambda x: x[2],
+            reverse=True
+        ):
+            print(id, score)
+            fname = text_rev_dict[id]
+            print("### Rank : {0}".format(count))
+            print("### {0}, {1} : Score {2}".format(fname, subId, score))
+            fpath = basePath / fname
+            with open(fpath, mode='r', encoding='utf-8') as ifp:
+                lineNo = 0
+                for line in ifp:
+                    if lineNo == subId:
+                        #line = line.rstrip('\n')
+                        print(line.rstrip('\n'))
+                        break
+                    lineNo += 1
+            count += 1
 
     return result
 
@@ -286,7 +413,7 @@ def explain(model, bert_model, text, max_line, text_rev_dict):
 
     vec = token_embeddings.numpy()
 
-    print(vec.shape)
+    #print(vec.shape)
 
     result = model.explain(vec)
     count = 0
@@ -312,7 +439,7 @@ if len(sys.argv) < 3:
     print('example : python sample.py en add 500')
     print('example : python sample.py ja test')
     print('example : python sample.py ja refine')
-    exit()
+    elineNoxit()
 
 lang_mode = sys.argv[1]
 mode = sys.argv[2]
@@ -358,11 +485,12 @@ else:
 print(model.get_total_vector())
 
 if mode == 'add':
+    #model.set_debug_mode(1)
     target_num = int(sys.argv[3])
     total = len(text_dict)
-    
-    while total < target_num:
-        total += add(model, bert_model, basePath, None, text_dict, 0, 5, 5, 0.9)
+    add_num = target_num - total
+    if add_num > 0:
+        add(model, bert_model, basePath, None, text_dict, 0, add_num, 5, 0.9)
     
     model.save(db_path)
     
@@ -376,6 +504,7 @@ if mode == 'add':
 elif mode == 'test':
     if lang_mode == 'ja':
         for keywords in ['週刊少年サンデー', '聖☆おにいさん']:
+        #for keywords in ['元プロバスケットボール選手']:
             print("##### keywords = {0} #####".format(keywords))
             print("### Search ###")
             results = search(model, bert_model, keywords, 5, text_rev_dict)

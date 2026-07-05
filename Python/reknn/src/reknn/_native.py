@@ -473,11 +473,19 @@ class _NativeRuntime:
     ) -> ctypes.c_bool:
         self._ensure_open()
 
+        #print("--- at native AddBulk ---")
+        #print(f"count={count}")
+        #print(f"vec={vec}")
+        #print(f"length={length}")
+        #print(f"mainId={mainId}")
+        #print(f"subId={subId}")
+
+        # private static extern unsafe bool AddBulk(int instanceNo, int count, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
         with self._lock:
             vp = self._as_float32_matrix(vec).ctypes.data_as(ctypes.POINTER(ctypes.c_float))
-            lp = self._as_int64_vector(length).ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-            mp = self._as_int64_vector(mainId).ctypes.data_as(ctypes.POINTER(ctypes.c_int))
-            sp = self._as_int64_vector(subId).ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+            lp = self._as_int32_vector(length).ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+            mp = self._as_int32_vector(mainId).ctypes.data_as(ctypes.POINTER(ctypes.c_int))
+            sp = self._as_int32_vector(subId).ctypes.data_as(ctypes.POINTER(ctypes.c_int))
             rc = self._lib.AddBulk(instanceNo, count, vp, lp, mp, sp, searchMax, threshold)
 
         return rc
@@ -725,8 +733,8 @@ class _NativeRuntime:
 
         return np.ascontiguousarray(arr)
 
-    def _as_int64_vector(self, value: np.ndarray) -> np.ndarray:
-        arr = np.asarray(value, dtype=np.int64)
+    def _as_int32_vector(self, value: np.ndarray) -> np.ndarray:
+        arr = np.asarray(value, dtype=np.int32)
 
         if arr.ndim != 1:
             raise ValueError("labels must be a 1D array.")
