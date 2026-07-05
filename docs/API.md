@@ -180,6 +180,9 @@ DLL / .so call definitions:
         private static extern int Delete(int instanceNo, int mainId, int subId);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern int Delete2(int instanceNo, int mainId);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -233,6 +236,7 @@ DLL / .so call definitions:
 | [AddBulk](#AddBulk)             |  Adds vector information (Bulk)                                   |
 | [Refine](#Refine)                     | Optimizes the index structure                                    |
 | [Delete](#Delete)                     | Deletes vector information                                       |
+| [Delete2](#Delete2)                   | Deletes vector information                                       |
 | [Search](#Search)                     | Searches vector information                                      |
 | [GetTotalVector](#GetTotalVector)     | Gets the number of registered vectors                            |
 | [Save](#Save)                         | Saves the DB to storage                                          |
@@ -253,7 +257,7 @@ DLL / .so call definitions:
 ### Initialize
 
 Allocates independent index areas for the specified number of instances.
-In the evaluation version, one of BERT (768 dimensions), MNIST (784 dimensions), or CIFAR10 (3072 dimensions) can be selected.
+In the evaluation version, one of BERT (768 dimensions), MNIST (784 dimensions), or CIFAR10 (3072 dimensions), or VEC300 (300 dimensions) can be selected.
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -262,7 +266,7 @@ In the evaluation version, one of BERT (768 dimensions), MNIST (784 dimensions),
 
 | Argument Type | Argument Name | Description                                    |
 | :------------ | :------------ | :--------------------------------------------- |
-| ModeEnum      | mode          | Initialization mode: BERT, MNIST, or CIFAR10   |
+| ModeEnum      | mode          | Initialization mode: BERT, MNIST, CIFAR10, or VEC300   |
 | int           | instanceNum   | Number of index areas / DB instances to create |
 
 | Return Value | Description              |
@@ -326,7 +330,7 @@ Adds vector information to the specified instance. (bulk mode)
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
-        private static extern unsafe bool AddBulk(int instanceNo, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+        private static extern unsafe bool AddBulk(int instanceNo, int count, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
 ```
 
 | Argument Type | Argument Name | Description                                                                                                      |
@@ -387,6 +391,26 @@ Deletes the specified vector information from the specified instance.
 | int           | instanceNo    | Instance number   |
 | int           | mainId        | Main ID to delete |
 | int           | subId         | Sub ID to delete  |
+
+| Return Value  | Description               |
+| :------------ | :------------------------ |
+| Numeric value | Number of deleted vectors |
+
+---
+
+### Delete2
+
+Deletes the specified vector information from the specified instance.
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern int Delete2(int instanceNo, int mainId);
+```
+
+| Argument Type | Argument Name | Description       |
+| :------------ | :------------ | :---------------- |
+| int           | instanceNo    | Instance number   |
+| int           | mainId        | Main ID to delete |
 
 | Return Value  | Description               |
 | :------------ | :------------------------ |
@@ -570,7 +594,7 @@ This inference engine also returns evidence information for the inference. This 
 
 | Return Value | Description                                                                                                                                                                                                                                                               |
 | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| not null     | Inference information. Check the `PredictResult` structure.<br>A `PredictResult` is also returned for an unknown judgment. Check `PredictedLabel` for details of the unknown judgment.<br>**The returned pointer must be freed by the caller using `NativeMemory.Free`.** |
+| not null     | Inference information. Check the `PredictResult` structure.<br>A `PredictResult` is also returned for an unknown judgment. Check `PredictedLabel` for details of the unknown judgment.<br>**The returned pointer must be freed by the caller using `FreeNativeMemory`.** |
 | null         | Inference processing failed                                                                                                                                                                                                                                               |
 
 The following is an example of memory release processing.
@@ -619,7 +643,7 @@ This inference engine also returns evidence information for the inference. This 
 
 | Return Value | Description                                                                                                                                                                                                                                                               |
 | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| not null     | Inference information. Check the `PredictResult` structure.<br>A `PredictResult` is also returned for an unknown judgment. Check `PredictedLabel` for details of the unknown judgment.<br>**The returned pointer must be freed by the caller using `NativeMemory.Free`.** |
+| not null     | Inference information. Check the `PredictResult` structure.<br>A `PredictResult` is also returned for an unknown judgment. Check `PredictedLabel` for details of the unknown judgment.<br>**The returned pointer must be freed by the caller using `FreeNativeMemory`.** |
 | null         | Inference processing failed                                                                                                                                                                                                                                               |
 
 The following is an example of memory release processing.

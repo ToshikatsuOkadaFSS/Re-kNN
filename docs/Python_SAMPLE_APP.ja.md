@@ -40,6 +40,7 @@ model = ReKNN('bert')
 ## サンプルプログラムについて
 
 指示したフォルダ以下にあるテキストファイルをトークン化して検索するというサンプルです。
+サンプルプログラムでは、評価用途としてファイルの登録、更新、削除に対応しています。
 あくまでもサンプルコードなので、これを参考に自身のプログラムを作成してください。
 
 ### 使用方法
@@ -49,7 +50,6 @@ model = ReKNN('bert')
 以下の記述を環境に合わせて修正してください。
 このサンプルでは、日本語を ja, 英語を en として環境を設定しています。
 また、basePath に元となるテキストファイルを格納したフォルダを指定してください。
-サンプルプログラムでは、ファイルの削除には対応していません。
 
 
 ##### 環境設定関連
@@ -61,6 +61,7 @@ if lang_mode == 'ja':
     bert_model = AutoModel.from_pretrained(model_name)
     db_path = 'db-ja'
     dict_path = 'textDict-ja.json'
+    cluster_path = 'cluster-ja.json'
     basePath = Path("/local/tokada/jawikiout-txt")
 
 elif lang_mode == 'en':
@@ -70,6 +71,7 @@ elif lang_mode == 'en':
     bert_model = AutoModel.from_pretrained(model_name)
     db_path = 'db-en'
     dict_path = 'textDict-en.json'
+    cluster_path = 'cluster-en.json'
     basePath = Path("/local/tokada/enwikiout-txt")
 else:
     print(f"bad lang_mode={lang_mode}")
@@ -95,13 +97,19 @@ elif mode == 'test':
 ```
 
 
+### Version 1.2.1 での更新内容
+
+- Python のパッケージに、クラスタリング結果出力機能を追加しました。
+- Python のパッケージに、mainId のみでデータを削除する機能を追加しました。
+- Python 用のサンプルアプリケーションにファイルの更新や削除に対応する機能を追加しました。
+- 検索結果の詳細情報の出力処理に問題があったため修正しました。
+
 
 ### 制限事項
 
 現時点では以下の制限事項があります。順次対応予定です。
 
-- index 化したデータの削除 / 更新
-- クラスタ情報の出力
+- Re-kNN の全ての機能が実装されているわけではありません。
 
 
 

@@ -121,11 +121,23 @@ def toVector(bert_model, text):
     return all_tokens, total_embeddings
 
 
-def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchMax, threshold):
+def check_delete(model, basePath, textDict, revDict):
+    for relPath in list(textDict.keys()):
+        chkPath = basePath / relPath
+
+        if not chkPath.is_file():
+            print("delete : {0}".format(relPath))
+            fileId = textDict[relPath][0]
+            model.delete(fileId)
+            del textDict[relPath]
+            del revDict[fileId]
+
+    
+def add(model, bert_model, basePath, relPath, textDict, count, maxData, searchMax, threshold):
 
     #print(relPath)
 
-    if count >= maxCount:
+    if count >= maxData:
         return count
 
     if relPath is None:
@@ -145,29 +157,51 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
         else:
             newRelPath = relPath / folder
 
-        count = add(model, bert_model, basePath, newRelPath, textDict, count, maxCount, searchMax, threshold)
+        count += add(model, bert_model, basePath, newRelPath, textDict, count, maxData, searchMax, threshold)
 
-        if count >= maxCount:
+        if count >= maxData:
             break
 
     prev = int(model.get_total_vector(model.current_instance))
     add_vector_set = {}
     key_set = []
 
-    if count >= maxCount:
+    if count >= maxData:
         return count
 
     for file in files:
+        if count >= maxData:
+            break
+
         srcPath = basePath / relPath / file
         relFile = relPath / file
         relFileStr = str(relFile)
 
         if relFileStr in textDict.keys():
-            continue
+            fileId = textDict[relFileStr][0]
+            #print(
+            #    srcPath.stat().st_mtime,
+            #    textDict[relFileStr][1],
+            #    srcPath.stat().st_size,
+            #    textDict[relFileStr][2])
+            if srcPath.stat().st_mtime == textDict[relFileStr][1] and srcPath.stat().st_size == textDict[relFileStr][2]:
+                #print(f"same : {relFileStr}")
+                count += 1
+                continue
+            delSize = model.delete(fileId)
+            print(f"Update {relFileStr} : {delSize}")
+            prev -= delSize
+        else:
+            if len(textDict) > 0:
+                #print(textDict.values())
+                fileId = max(textDict.values(), key=lambda x: int(x[0]))[0] + 1
+            else:
+                fileId = 0
+            print(relFileStr)
 
-        print(relFileStr)
-        fileId = len(textDict)
-        textDict[relFileStr] = fileId
+        #print(fileId)
+
+        textDict[relFileStr] = [fileId, srcPath.stat().st_mtime, srcPath.stat().st_size]
 
         add_vector_set[fileId] = {}
 
@@ -193,6 +227,8 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
                         np.full(vec.shape[0], lineNo, dtype=np.int32)]
 
                 key_set_sub += [[fileId, lineNo]]
+                #if lineNo == 19:
+                #    print(fileId, lineNo)
 
         key_set += key_set_sub
 
@@ -229,7 +265,7 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
             key_set = []
 
 
-        if count >= maxCount:
+        if count >= maxData:
             break
 
     if len(key_set) > 0:
@@ -249,7 +285,7 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxCount, searchM
         now = datetime.now()
         print(f"{now.strftime('%Y-%m-%d %H:%M:%S')}:{count}:total vector = {model.get_total_vector()}")
 
-        after = int(model.get_total_vector(model.current_instance))
+        after = int(model.get_total_vector())
 
         #print(f"prev = {prev}, after={after}, add={vec.shape[0]}")
         if ( prev + add_vector.shape[0]) != after:
@@ -450,6 +486,7 @@ if lang_mode == 'ja':
     bert_model = AutoModel.from_pretrained(model_name)
     db_path = 'db-ja'
     dict_path = 'textDict-ja.json'
+    cluster_path = 'cluster-ja.json'
     basePath = Path("/local/tokada/jawikiout-txt")
 
 elif lang_mode == 'en':
@@ -459,6 +496,7 @@ elif lang_mode == 'en':
     bert_model = AutoModel.from_pretrained(model_name)
     db_path = 'db-en'
     dict_path = 'textDict-en.json'
+    cluster_path = 'cluster-en.json'
     basePath = Path("/local/tokada/enwikiout-txt")
 else:
     print(f"bad lang_mode={lang_mode}")
@@ -474,7 +512,11 @@ if model.load(db_path):
         with open(dict_path, "r", encoding="utf-8") as f:
             text_dict = json.load(f)
             for key in text_dict.keys():
-                text_rev_dict[text_dict[key]] = key
+                if type(text_dict[key]) is int:
+                    fileId = text_dict[key]
+                    srcPath = basePath / key
+                    text_dict[key] = [fileId, srcPath.stat().st_mtime, srcPath.stat().st_size]
+                text_rev_dict[text_dict[key][0]] = key
     
     else:
         model.clear()
@@ -487,10 +529,10 @@ print(model.get_total_vector())
 if mode == 'add':
     #model.set_debug_mode(1)
     target_num = int(sys.argv[3])
-    total = len(text_dict)
-    add_num = target_num - total
-    if add_num > 0:
-        add(model, bert_model, basePath, None, text_dict, 0, add_num, 5, 0.9)
+
+    check_delete(model, basePath, text_dict, text_rev_dict)
+
+    add(model, bert_model, basePath, None, text_dict, 0, target_num, 5, 0.9)
     
     model.save(db_path)
     
@@ -519,6 +561,34 @@ elif mode == 'refine':
     result = model.refine(3)
     model.save(db_path)
     print(f"refine finished({result}).")
+
+elif mode == 'del':
+    print("del file")
+    print(model.get_total_vector())
+
+    fileId = 90
+    relPath = text_rev_dict[fileId]
+    model.delete(fileId)
+    del text_dict[relPath]
+    del text_rev_dict[fileId]
+
+    model.save(db_path)
+    
+    with open(dict_path, "w", encoding="utf-8") as f:
+        # ensure_ascii=False にすることで日本語が文字化け（\uXXXX 形式）せずに保存されます
+        # indent=4 を指定すると綺麗に改行・インデントされて見やすくなります
+        json.dump(text_dict, f, ensure_ascii=False, indent=4)
+    
+    print(model.get_total_vector())
+
+elif mode == 'clustering':
+    print("clustering")
+    result = model.get_cluster()
+    print(len(result))
+    with open(cluster_path, "w", encoding="utf-8") as f:
+        # ensure_ascii=False にすることで日本語が文字化け（\uXXXX 形式）せずに保存されます
+        # indent=4 を指定すると綺麗に改行・インデントされて見やすくなります
+        json.dump(result, f, ensure_ascii=False, indent=4)
 
 else:
     print("mode error")

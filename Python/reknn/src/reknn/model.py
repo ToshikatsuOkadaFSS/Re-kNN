@@ -247,6 +247,21 @@ class ReKNN:
 
         self._closed = True
 
+    def delete(self, y:int, target_instance:int=None):
+        self._ensure_open()
+        target_instance = self.current_instance if target_instance is None else target_instance
+        return self._native.Delete2(target_instance, y)        
+
+    def delete_with_subid(self, y:int, sub_id:int, target_instance:int=None):
+        self._ensure_open()
+        target_instance = self.current_instance if target_instance is None else target_instance
+        return self._native.Delete(target_instance, y, sub_id)
+
+    def get_cluster(self, target_instance:int=None):
+        self._ensure_open()
+        target_instance = self.current_instance if target_instance is None else target_instance
+        return self._native.SimpleClustering(target_instance)
+
     def _ensure_open(self) -> None:
         if self._closed or self.current_instance is None:
             raise RuntimeError("ReKNN instance is already closed.")

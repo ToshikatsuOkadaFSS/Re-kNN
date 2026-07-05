@@ -178,6 +178,9 @@ DLL / .so 呼び出しの定義
         private static extern int Delete(int instanceNo, int mainId, int subId);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern int Delete2(int instanceNo, int mainId);
+
+        [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
 
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -230,6 +233,7 @@ DLL / .so 呼び出しの定義
 | [AddBulk](#AddBulk)             |  ベクトル情報の追加 (Bulk)                                   |
 | [Refine](#Refine) | Index 構造の最適化 |
 | [Delete](#Delete) | ベクトル情報の削除 | 
+| [Delete2](#Delete2) | ベクトル情報の削除 | 
 | [Search](#Search) | ベクトル情報の検索 |
 | [GetTotalVector](#GetTotalVector) | 登録されているベクトル数を獲得 |
 | [Save](#Save) | DB をストレージに保存 |
@@ -250,7 +254,7 @@ DLL / .so 呼び出しの定義
 ### Initialize
 
 指示したインスタンス数だけの独立したインデックス領域を確保する。
-試行版では、BERT (768次元), MNIST(784次元), CIFAR10(3072次元) のいずれかから選択する。
+評価版では、BERT (768次元), MNIST(784次元), CIFAR10(3072次元), VEC300(300次元) のいずれかから選択する。
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -323,7 +327,7 @@ DLL / .so 呼び出しの定義
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
-        private static extern unsafe bool AddBulk(int instanceNo, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
+        private static extern unsafe bool AddBulk(int instanceNo, int count, float* vec, int* size, int* mainId, int* subId, int searchMax, double threshold);
 ```
 
 | 引数の型 | 引数名 | 意味 |
@@ -384,6 +388,26 @@ DLL / .so 呼び出しの定義
 | int | instanceNo | インスタンス番号 |
 | int | mainId | 削除対象のメインID |
 | int | subId | 削除対象のサブID |
+
+| 戻り値 | 意味 |
+| :--- | :--- |
+| 数値 | 削除したベクトルの数 |
+
+----
+
+### Delete2
+
+指示したインスタンスから、指示したベクトル情報を削除する。
+
+```C#
+        [DllImport("FuutaSystemSvcVectorLibrary")]
+        private static extern int Delete2(int instanceNo, int mainId);
+```
+
+| 引数の型 | 引数名 | 意味 |
+| :--- | :--- | :--- |
+| int | instanceNo | インスタンス番号 |
+| int | mainId | 削除対象のメインID |
 
 | 戻り値 | 意味 |
 | :--- | :--- |
@@ -482,7 +506,7 @@ finally
 
 指示したインスタンスのインデックス情報を、カウント情報付きで指示したストレージに書き込む。
 
-** 注意 **: 本機能の利用は推奨しない。本機能を利用しても、DBは完全に分離した形では保存されない。
+**注意**: 本機能の利用は推奨しない。本機能を利用しても、DB は完全に分離した形では保存されない。
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -565,7 +589,7 @@ finally
 
 | 戻り値 | 意味 |
 | :--- | :--- |
-| not null | 推論情報(PredictResult 構造体を確認する) <br>未知判定の場合も `PredictResult` が返る。未知判定の詳細は `PredictedLabel` を確認する。<br> **返却されるポインタは、呼び出し側で `NativeMemory.Free` により解放すること。** |
+| not null | 推論情報(PredictResult 構造体を確認する) <br>未知判定の場合も `PredictResult` が返る。未知判定の詳細は `PredictedLabel` を確認する。<br> **返却されるポインタは、呼び出し側で `FreeNativeMemory` により解放すること。** |
 | null | 推論処理に失敗 |
 
 以下にメモリ解放処理の例を示す。先頭のポインタを解放するだけで良い。
@@ -599,7 +623,7 @@ finally
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
-        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, minThreshold);
+        private static extern unsafe PredictResult* Predict2(int instanceNo, float* vec, int length, int kValue, double detectThreshold, double minThreshold);
 ```
 
 | 引数の型 | 引数名 | 意味 |
@@ -613,7 +637,7 @@ finally
 
 | 戻り値 | 意味 |
 | :--- | :--- |
-| not null | 推論情報(PredictResult 構造体を確認する) <br>未知判定の場合も `PredictResult` が返る。未知判定の詳細は `PredictedLabel` を確認する。<br> **返却されるポインタは、呼び出し側で `NativeMemory.Free` により解放すること。** |
+| not null | 推論情報(PredictResult 構造体を確認する) <br>未知判定の場合も `PredictResult` が返る。未知判定の詳細は `PredictedLabel` を確認する。<br> **返却されるポインタは、呼び出し側で `FreeNativeMemory` により解放すること。** |
 | null | 推論処理に失敗 |
 
 以下にメモリ解放処理の例を示す。先頭のポインタを解放するだけで良い。
@@ -667,7 +691,7 @@ finally
 
 ### GetStatusDetail
 
-実行結果の詳細情報の獲得。
+実行結果の詳細情報の取得。
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -712,7 +736,7 @@ Refine 処理の回数を引数で指定する。回数が -1 の場合、不要
 
 ### SetDebugMode
 
-Debug モードの設定
+Debug モードの設定。
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
@@ -727,14 +751,14 @@ Debug モードの設定
 
 ### FreeNativeMemory
 
-確保されている Native Memory を解放する.
+確保されている Native Memory を解放する。
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern void FreeNativeMemory(void* ptr);
 ```
 
-| Argument Type | Argument Name | Description                                                                                              |
+| 引数の型 | 引数名 | 意味 |
 | :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
 | void*           | ptr          | NativeMemory のポインタ |
 
@@ -742,14 +766,14 @@ Debug モードの設定
 
 ### Clear
 
-指定したインスタンスをクリアする.
+指定したインスタンスをクリアする。
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern void Clear(int instanceNo);
 ```
 
-| Argument Type | Argument Name | Description                                                                                              |
+| 引数の型 | 引数名 | 意味 |
 | :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
 | int           | instanceNo | インスタンス番号 |
 
@@ -757,14 +781,14 @@ Debug モードの設定
 
 ### InitializeInstance
 
-指定したインスタンスを初期化する.
+指定したインスタンスを初期化する。
 
 ```C#
         [DllImport("FuutaSystemSvcVectorLibrary")]
         private static extern void InitializeInstance(int instanceNo, ModeEnum mode);
 ```
 
-| Argument Type | Argument Name | Description                                                                                              |
+| 引数の型 | 引数名 | 意味 |
 | :------------ | :------------ | :------------------------------------------------------------------------------------------------------- |
 | int           | instanceNo | インスタンス番号 |
 | ModeEnum      | mode          | 初期化モード(BERT, MNIST, CIFAR10, VEC300 のいずれか) |

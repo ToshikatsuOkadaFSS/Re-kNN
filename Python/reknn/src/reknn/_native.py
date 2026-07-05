@@ -254,6 +254,14 @@ class _NativeRuntime:
         self._lib.Delete.restype = ctypes.c_int
         
         # [DllImport("FuutaSystemSvcVectorLibrary")]
+        # private static extern int Delete2(int instanceNo, int mainId);
+        self._lib.Delete2.argtypes = [
+            ctypes.c_int,
+            ctypes.c_int,
+        ]
+        self._lib.Delete2.restype = ctypes.c_int
+
+        # [DllImport("FuutaSystemSvcVectorLibrary")]
         # private static extern unsafe SearchResult* Search(int instanceNo, float* vec, int length, int kValue);
         self._lib.Search.argtypes = [
             ctypes.c_int,
@@ -654,7 +662,7 @@ class _NativeRuntime:
                                 ]
                             }
                         ]
-                        for x in range(result.contents.ResultItemMainDetailNum)
+                        for x in range(result.contents.ResultItemMainAndSubDetailNum)
                     ]
                 }
 
@@ -677,6 +685,13 @@ class _NativeRuntime:
         db_path_len = len(db_path_pt)
         return self._lib.Load(0, db_path_pt, db_path_len)
 
+    def Delete(self, target_instance:int, id1:int, id2:int) -> int:
+        self._ensure_open()
+        return self._lib.Delete(target_instance, id1, id2)
+
+    def Delete2(self, target_instance:int, id1:int) -> int:
+        self._ensure_open()
+        return self._lib.Delete2(target_instance, id1)
 
     def RefineAll(self, limit : int, target_instance : int) -> ctypes.c_bool:
         self._ensure_open()
@@ -696,6 +711,82 @@ class _NativeRuntime:
     def SetDebugMode(self, mode : int) -> None:
         self._ensure_open()
         return self._lib.SetDebugMode(mode)
+
+    def SimpleClustering(self, instanceNo: int):
+        self._ensure_open()
+
+        try:
+            result = self._lib.SimpleClustering(instanceNo)
+
+            results = {}
+            results['Size'] = result.contents.Size
+            results['ResultItemMainNum'] = result.contents.ResultItemMainNum
+            results['ResultItemMains'] = {
+                k:v for k,v in [
+                    [
+                        result.contents.ResultItemMains[x].MainId,
+                        result.contents.ResultItemMains[x].Score
+                    ]
+                    for x in range(result.contents.ResultItemMainNum)
+                ]
+            }
+            results['ResultItemMainAndSubNum'] = result.contents.ResultItemMainAndSubNum
+            results['ResultItemMainAndSubs'] = {
+                k:v for k,v in [
+                    [
+                        result.contents.ResultItemMainAndSubs[x].MainId,
+                        [
+                            result.contents.ResultItemMainAndSubs[x].SubId,
+                            result.contents.ResultItemMainAndSubs[x].Score,
+                        ]
+                    ]
+                    for x in range(result.contents.ResultItemMainAndSubNum)
+                ]
+            }
+            results['ResultItemMainDetailNum'] = result.contents.ResultItemMainDetailNum
+            results['ResultItemMainDetails'] = {
+                k:v for k,v in [
+                    [
+                        result.contents.ResultItemMainDetails[x].key,
+                        {
+                            k:v for k,v in [
+                                [
+                                    result.contents.ResultItemMainDetails[x].values[y].MainId,
+                                    result.contents.ResultItemMainDetails[x].values[y].Score,
+                                ]
+                                for y in range(result.contents.ResultItemMainDetails[x].valueNum)
+                            ]
+                        }
+                    ]
+                    for x in range(result.contents.ResultItemMainDetailNum)
+                ]
+            }
+            results['ResultItemMainAndSubDetailNum'] = result.contents.ResultItemMainAndSubDetailNum
+            results['ResultItemMainAndSubDetails'] = {
+                k:v for k,v in [
+                    [
+                        result.contents.ResultItemMainAndSubDetails[x].key,
+                        {
+                            k:v for k,v in [
+                                [
+                                    result.contents.ResultItemMainAndSubDetails[x].values[y].MainId,
+                                    [
+                                        result.contents.ResultItemMainAndSubDetails[x].values[y].SubId,
+                                        result.contents.ResultItemMainAndSubDetails[x].values[y].Score,
+                                    ]
+                                ]
+                                for y in range(result.contents.ResultItemMainAndSubDetails[x].valueNum)
+                            ]
+                        }
+                    ]
+                    for x in range(result.contents.ResultItemMainAndSubDetailNum)
+                ]
+            }
+
+        finally:
+            self._lib.FreeNativeMemory(result)
+
+        return results
 
 
     # ---------------------------------------------------------------------
