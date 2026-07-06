@@ -135,7 +135,7 @@ def check_delete(model, basePath, textDict, revDict):
     
 def add(model, bert_model, basePath, relPath, textDict, count, maxData, searchMax, threshold):
 
-    #print(relPath)
+    #print(f"{count}:{relPath}")
 
     if count >= maxData:
         return count
@@ -157,7 +157,7 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxData, searchMa
         else:
             newRelPath = relPath / folder
 
-        count += add(model, bert_model, basePath, newRelPath, textDict, count, maxData, searchMax, threshold)
+        count = add(model, bert_model, basePath, newRelPath, textDict, count, maxData, searchMax, threshold)
 
         if count >= maxData:
             break
@@ -185,7 +185,7 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxData, searchMa
             #    srcPath.stat().st_size,
             #    textDict[relFileStr][2])
             if srcPath.stat().st_mtime == textDict[relFileStr][1] and srcPath.stat().st_size == textDict[relFileStr][2]:
-                #print(f"same : {relFileStr}")
+                #print(f"same : {count}:{relFileStr}")
                 count += 1
                 continue
             delSize = model.delete(fileId)
@@ -294,6 +294,7 @@ def add(model, bert_model, basePath, relPath, textDict, count, maxData, searchMa
 
     #print(f"total vec={model.get_total_vector()}")
         
+    #print(f"return {count}")
     return count    
 
 
