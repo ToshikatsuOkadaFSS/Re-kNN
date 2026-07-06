@@ -1,5 +1,20 @@
 # Release Notes
 
+## July 6, 2026 (Version 1.2.1)
+
+### Added
+
+- Added a function (Delete2) to the API that deletes data using only mainId.
+- Added clustering result output functionality to the Python package.
+- Added a feature to the Python package that deletes data using only mainId.
+
+### Changed
+
+- Added support for file update and deletion features in the sample application for Python.
+- Fixed an issue in the output process of detailed information in search results.
+
+
+
 ## June 29, 2026 (Version 1.2)
 
 ### Added

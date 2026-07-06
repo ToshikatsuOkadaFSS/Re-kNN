@@ -39,6 +39,7 @@ model = ReKNN('bert')
 ## About the Sample Program
 
 This sample program tokenizes and searches text files located under a specified folder.  
+The sample program supports file registration, update, and deletion for evaluation purposes.
 It is merely a sample code, so please create your own program with this as a reference.
 
 ### How to Use
@@ -48,7 +49,6 @@ It is merely a sample code, so please create your own program with this as a ref
 Please edit the following descriptions according to your environment.  
 In this sample, Japanese is set as `ja`, English as `en`.  
 Also, specify the folder storing the original text files in `basePath`.  
-The sample program does not support file deletion.
 
 ##### Environment Setup
 
@@ -59,6 +59,7 @@ if lang_mode == 'ja':
     bert_model = AutoModel.from_pretrained(model_name)
     db_path = 'db-ja'
     dict_path = 'textDict-ja.json'
+    cluster_path = 'cluster-ja.json'
     basePath = Path("/local/tokada/jawikiout-txt")
 
 elif lang_mode == 'en':
@@ -68,6 +69,7 @@ elif lang_mode == 'en':
     bert_model = AutoModel.from_pretrained(model_name)
     db_path = 'db-en'
     dict_path = 'textDict-en.json'
+    cluster_path = 'cluster-en.json'
     basePath = Path("/local/tokada/enwikiout-txt")
 else:
     print(f"bad lang_mode={lang_mode}")
@@ -92,10 +94,17 @@ elif mode == 'test':
         pass
 ```
 
+### Updates in Version 1.2.1
+
+- Added clustering result output functionality to the Python package.
+- Added a feature to the Python package that deletes data using only mainId.
+- Added support for file update and deletion features in the sample application for Python.
+- Fixed an issue in the output process of detailed information in search results.
+
 ### Limitations
 
-Currently, the following limitations exist; we plan to address them sequentially:
+At this point, the following limitations exist and will be addressed sequentially:
 
-- Deletion/Update of indexed data  
-- Output of cluster information
+- Not all functions of Re-kNN have been implemented yet.
+
 
